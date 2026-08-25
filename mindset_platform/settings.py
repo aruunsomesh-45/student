@@ -221,10 +221,16 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 DEFAULT_AI_API_KEY = os.getenv('AI_API_KEY', '')
 
 # ---------------------------------------------------------------------------
-# HTTPS / Security hardening
-# All settings are environment-driven so dev stays http and prod is secure.
-# Set FORCE_HTTPS=True in your production environment to enable all hardening.
+# HTTPS / Proxy Header & Security hardening
 # ---------------------------------------------------------------------------
+# Trust proxy headers from Railway / Cloudflare / Render / Nginx
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+USE_X_FORWARDED_HOST = True
+USE_X_FORWARDED_PORT = True
+
+# Force https in allauth OAuth redirect URLs in production
+ACCOUNT_DEFAULT_HTTP_PROTOCOL = 'https' if not DEBUG else 'http'
+
 _force_https = os.getenv('FORCE_HTTPS', 'False').lower() in ('true', '1', 'yes')
 
 SECURE_SSL_REDIRECT = _force_https
@@ -233,7 +239,6 @@ SECURE_HSTS_INCLUDE_SUBDOMAINS = _force_https
 SECURE_HSTS_PRELOAD = _force_https
 SESSION_COOKIE_SECURE = _force_https
 CSRF_COOKIE_SECURE = _force_https
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https') if _force_https else None
 X_FRAME_OPTIONS = 'DENY'
 SECURE_CONTENT_TYPE_NOSNIFF = True
 SECURE_BROWSER_XSS_FILTER = True
@@ -241,6 +246,7 @@ SECURE_BROWSER_XSS_FILTER = True
 # Session expiry — 14 days default, override via SESSION_COOKIE_AGE env var
 SESSION_COOKIE_AGE = int(os.getenv('SESSION_COOKIE_AGE', '1209600'))
 SESSION_EXPIRE_AT_BROWSER_CLOSE = False
+
 
 # ---------------------------------------------------------------------------
 # Logging — structured console output for production visibility
