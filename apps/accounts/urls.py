@@ -8,6 +8,7 @@ from .views import (
     DemoLoginView,
     GoogleAuthInitView,
     GoogleSimulateCallbackView,
+    SupabaseCallbackView,
 )
 
 app_name = 'accounts'
@@ -20,7 +21,8 @@ urlpatterns = [
     path('dispatch/', RoleDispatchView.as_view(), name='dispatch'),
     path('demo/<str:role>/', DemoLoginView.as_view(), name='demo_login'),
     
-    # Google OAuth helper & simulation endpoints
+    # Supabase Google OAuth Endpoints
     path('google/init/', GoogleAuthInitView.as_view(), name='google_init'),
     path('google/callback/simulate/', GoogleSimulateCallbackView.as_view(), name='google_simulate_callback'),
+    path('supabase/callback/', SupabaseCallbackView.as_view(), name='supabase_callback'),
 ]
