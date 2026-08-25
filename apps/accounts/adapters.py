@@ -5,8 +5,24 @@ from django.urls import reverse
 
 class CustomSocialAccountAdapter(DefaultSocialAccountAdapter):
     """
-    Custom adapter for handling Google OAuth user data extraction and role assignment.
+    Custom adapter for handling Google OAuth user data extraction, 
+    account linking, and role assignment.
     """
+    def pre_social_login(self, request, sociallogin):
+        # Automatically connect to existing user account if email already registered
+        if sociallogin.is_existing:
+            return
+        if not sociallogin.email_addresses:
+            return
+        from apps.accounts.models import User
+        email = sociallogin.email_addresses[0].email
+        try:
+            user = User.objects.filter(email__iexact=email).first()
+            if user:
+                sociallogin.connect(request, user)
+        except Exception:
+            pass
+
     def populate_user(self, request, sociallogin, data):
         user = super().populate_user(request, sociallogin, data)
         
@@ -20,7 +36,7 @@ class CustomSocialAccountAdapter(DefaultSocialAccountAdapter):
         signup_role = request.session.get('oauth_signup_role')
         if signup_role in ['STUDENT', 'TEACHER']:
             user.role = signup_role
-        else:
+        elif not user.role:
             user.role = 'STUDENT'
             
         signup_tier = request.session.get('oauth_signup_tier')

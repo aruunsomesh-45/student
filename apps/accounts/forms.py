@@ -97,8 +97,32 @@ class TeacherSignUpForm(forms.ModelForm):
 
 class CustomLoginForm(AuthenticationForm):
     username = forms.CharField(
+        label='Username or Email',
         widget=forms.TextInput(attrs={'placeholder': 'Username or Email', 'class': 'form-input', 'autofocus': True})
     )
     password = forms.CharField(
         widget=forms.PasswordInput(attrs={'placeholder': 'Your password', 'class': 'form-input'})
     )
+
+    def clean(self):
+        username = self.cleaned_data.get('username')
+        password = self.cleaned_data.get('password')
+
+        if username is not None and password:
+            self.user_cache = authenticate(self.request, username=username.strip(), password=password)
+            if self.user_cache is None:
+                # If username direct auth fails, look up user by email address
+                try:
+                    user_match = User.objects.filter(email__iexact=username.strip()).first()
+                    if user_match:
+                        self.user_cache = authenticate(self.request, username=user_match.username, password=password)
+                except Exception:
+                    pass
+
+            if self.user_cache is None:
+                raise self.get_invalid_login_error()
+            else:
+                self.confirm_login_allowed(self.user_cache)
+
+        return self.cleaned_data
+
