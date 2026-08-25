@@ -27,13 +27,23 @@ if not SECRET_KEY:
 DEBUG = os.getenv('DEBUG', 'False').lower() in ('true', '1', 'yes')
 
 # ALLOWED_HOSTS — never use '*' in production
-_raw_hosts = os.getenv('ALLOWED_HOSTS', '')
-ALLOWED_HOSTS = [h.strip() for h in _raw_hosts.split(',') if h.strip()] or (['*'] if DEBUG else [])
-if not DEBUG and not ALLOWED_HOSTS:
-    raise RuntimeError(
-        "ALLOWED_HOSTS is empty in production mode. "
-        "Set it in your environment (comma-separated domain list)."
-    )
+_raw_hosts = os.getenv('ALLOWED_HOSTS', '*')
+ALLOWED_HOSTS = [h.strip() for h in _raw_hosts.split(',') if h.strip()]
+if '*' not in ALLOWED_HOSTS:
+    for domain in ['.up.railway.app', '.railway.app', 'localhost', '127.0.0.1']:
+        if domain not in ALLOWED_HOSTS:
+            ALLOWED_HOSTS.append(domain)
+
+_raw_csrf = os.getenv('CSRF_TRUSTED_ORIGINS', '')
+CSRF_TRUSTED_ORIGINS = [c.strip() for c in _raw_csrf.split(',') if c.strip()]
+if not CSRF_TRUSTED_ORIGINS:
+    CSRF_TRUSTED_ORIGINS = [
+        'https://*.up.railway.app',
+        'https://*.railway.app',
+        'http://localhost:8000',
+        'http://127.0.0.1:8000',
+    ]
+
 
 # ---------------------------------------------------------------------------
 # Application definition

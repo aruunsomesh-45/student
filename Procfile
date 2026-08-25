@@ -1,1 +1,1 @@
-web: gunicorn mindset_platform.wsgi:application --log-file -
+web: python manage.py collectstatic --noinput && python manage.py migrate --noinput && gunicorn mindset_platform.wsgi:application
