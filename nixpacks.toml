@@ -10,4 +10,4 @@ cmds = [
 ]
 
 [start]
-cmd = "python manage.py migrate --noinput && gunicorn mindset_platform.wsgi:application --bind 0.0.0.0:$PORT"
+cmd = "python manage.py migrate --noinput && gunicorn mindset_platform.wsgi:application --bind 0.0.0.0:$PORT --forwarded-allow-ips='*'"

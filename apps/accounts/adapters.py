@@ -1,13 +1,26 @@
+import os
 from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
 from allauth.account.adapter import DefaultAccountAdapter
+from django.conf import settings
 from django.shortcuts import redirect
 from django.urls import reverse
 
 class CustomSocialAccountAdapter(DefaultSocialAccountAdapter):
     """
     Custom adapter for handling Google OAuth user data extraction, 
-    account linking, and role assignment.
+    account linking, role assignment, and guaranteed HTTPS redirect URIs in production.
     """
+    def get_protocol(self, request):
+        if not settings.DEBUG or os.getenv('FORCE_HTTPS', '').lower() in ('true', '1', 'yes') or os.getenv('RAILWAY_ENVIRONMENT') or os.getenv('RAILWAY_PUBLIC_DOMAIN'):
+            return 'https'
+        return super().get_protocol(request)
+
+    def build_absolute_uri(self, request, location, protocol=None):
+        if protocol is None:
+            if not settings.DEBUG or os.getenv('FORCE_HTTPS', '').lower() in ('true', '1', 'yes') or os.getenv('RAILWAY_ENVIRONMENT') or os.getenv('RAILWAY_PUBLIC_DOMAIN'):
+                protocol = 'https'
+        return super().build_absolute_uri(request, location, protocol=protocol)
+
     def pre_social_login(self, request, sociallogin):
         # Automatically connect to existing user account if email already registered
         if sociallogin.is_existing:

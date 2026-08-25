@@ -3,6 +3,7 @@ WSGI config for mindset_platform project.
 
 Exposes WSGI callable as a module-level variable named `application`.
 Configures WhiteNoise directly at the WSGI level for static file serving.
+Enforces HTTPS scheme behind reverse proxies (Railway, Nginx, Cloudflare).
 Ensures database migrations and seed records are automatically applied on server boot.
 """
 
@@ -25,10 +26,11 @@ try:
     
     # Auto-provision Site record for allauth
     from django.contrib.sites.models import Site
-    Site.objects.get_or_create(
+    domain_name = os.getenv('RAILWAY_PUBLIC_DOMAIN', 'web-production-a7c4d.up.railway.app')
+    Site.objects.update_or_create(
         id=1,
         defaults={
-            'domain': os.getenv('RAILWAY_PUBLIC_DOMAIN', 'web-production-a7c4d.up.railway.app'),
+            'domain': domain_name,
             'name': 'MindConnect'
         }
     )
@@ -40,6 +42,23 @@ try:
 except Exception as e:
     import logging
     logging.getLogger(__name__).warning(f"WSGI startup initialization notice: {e}")
+
+
+# WSGI middleware to enforce HTTPS scheme behind reverse proxies
+class ForceHTTPSProxyMiddleware:
+    def __init__(self, app):
+        self.app = app
+
+    def __call__(self, environ, start_response):
+        # In production or when behind Railway proxy, always enforce https url scheme
+        is_prod = not os.getenv('DEBUG', 'False').lower() in ('true', '1', 'yes')
+        has_ssl_header = environ.get('HTTP_X_FORWARDED_PROTO') == 'https'
+        if is_prod or has_ssl_header:
+            environ['wsgi.url_scheme'] = 'https'
+            environ['HTTP_X_FORWARDED_PROTO'] = 'https'
+        return self.app(environ, start_response)
+
+application = ForceHTTPSProxyMiddleware(application)
 
 # Wrap with WhiteNoise to guarantee static files are served in production
 staticfiles_dir = BASE_DIR / 'staticfiles'
