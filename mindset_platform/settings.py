@@ -190,10 +190,12 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+WHITENOISE_USE_FINDERS = True
+WHITENOISE_MANIFEST_STRICT = False
+
 STORAGES = {
     "staticfiles": {
-        # CompressedStaticFilesStorage: compresses & cache-busts without requiring a
-        # pre-built manifest — works in tests and in production without collectstatic at boot.
         "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage",
     },
 }
@@ -201,6 +203,7 @@ STORAGES = {
 # Media files (user uploads — future-proof)
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+
 
 # ---------------------------------------------------------------------------
 # Auth redirects
