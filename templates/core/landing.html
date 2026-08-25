@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+
+{% block title %}Empowering Student-Teacher Empathy{% endblock %}
+
+{% block content %}
+<section class="hero-section">
+    <div class="hero-pill">
+        ✨ 3-Tier Mindset & Psychometric Assessment
+    </div>
+    
+    <h1 class="hero-title">
+        Understand the Student Mindset.<br>
+        <span class="highlight">Build Stronger Connections.</span>
+    </h1>
+    
+    <p class="hero-subtitle">
+        Tailored personality and learning style assessments for <strong>School (10th/12th)</strong>, 
+        <strong>Undergraduate</strong>, and <strong>Postgraduate</strong> students — generating actionable classroom playbooks for teachers.
+    </p>
+
+    <div class="hero-cta-group">
+        {% if user.is_authenticated %}
+            {% if user.is_teacher_user %}
+                <a href="{% url 'dashboard:teacher_overview' %}" class="btn btn-primary btn-lg">Open Teacher Dashboard →</a>
+            {% else %}
+                <a href="{% url 'assessments:take_quiz' %}" class="btn btn-primary btn-lg">Begin Mindset Test →</a>
+            {% endif %}
+        {% else %}
+            <a href="{% url 'accounts:signup_student' %}" class="btn btn-primary btn-lg">🎒 I'm a Student (Take Test)</a>
+            <a href="{% url 'accounts:signup_teacher' %}" class="btn btn-secondary btn-lg">👨‍🏫 I'm a Teacher (View Class)</a>
+        {% endif %}
+    </div>
+
+    <!-- Quick Demo Shortcuts -->
+    {% if not user.is_authenticated %}
+    <div class="demo-box" style="max-width: 620px; margin: 2.5rem auto 0;">
+        <div class="demo-title">⚡ Quick 1-Click Demo Logins (Instant Testing)</div>
+        <div class="demo-buttons">
+            <a href="{% url 'accounts:demo_login' 'teacher' %}" class="btn btn-sm btn-outline">👨‍🏫 Demo Teacher</a>
+            <a href="{% url 'accounts:demo_login' 'student_school' %}" class="btn btn-sm btn-outline">🎒 Demo School Student (10th)</a>
+            <a href="{% url 'accounts:demo_login' 'student_ug' %}" class="btn btn-sm btn-outline">🎓 Demo UG Student (B.Tech)</a>
+        </div>
+    </div>
+    {% endif %}
+</section>
+
+<!-- Qualification Tiers Breakdown -->
+<section class="tiers-grid">
+    <div class="tier-card">
+        <div class="tier-icon">🎒</div>
+        <h3 class="tier-title">Schooling (10th / 12th)</h3>
+        <p class="tier-desc">Focused on adolescent study habits, board exam stress, parental expectations, and visual vs kinesthetic learning.</p>
+        <ul class="tier-features">
+            <li>Exam Anxiety & Stress Coping</li>
+            <li>Attention Span & Screen Distractions</li>
+            <li>Classroom Feedback Sensitivity</li>
+        </ul>
+        <a href="{% url 'accounts:signup_student' %}" class="btn btn-outline btn-sm btn-block">Join as School Student</a>
+    </div>
+
+    <div class="tier-card">
+        <div class="tier-icon">🎓</div>
+        <h3 class="tier-title">Undergraduate (UG)</h3>
+        <p class="tier-desc">Tailored for college students transitioning into autonomous study, team projects, and career direction.</p>
+        <ul class="tier-features">
+            <li>Independent Project Management</li>
+            <li>Group Collaboration & Peer Synergy</li>
+            <li>Theory vs Practical Learning Balance</li>
+        </ul>
+        <a href="{% url 'accounts:signup_student' %}" class="btn btn-outline btn-sm btn-block">Join as UG Student</a>
+    </div>
+
+    <div class="tier-card">
+        <div class="tier-icon">🔬</div>
+        <h3 class="tier-title">Postgraduate (PG)</h3>
+        <p class="tier-desc">Built for advanced research scholars balancing thesis milestones, research rigor, and burnout prevention.</p>
+        <ul class="tier-features">
+            <li>Deep Research & Analytical Mindset</li>
+            <li>Work-Life Balance & Burnout Flags</li>
+            <li>Advising & 1-on-1 Mentorship Style</li>
+        </ul>
+        <a href="{% url 'accounts:signup_student' %}" class="btn btn-outline btn-sm btn-block">Join as PG Student</a>
+    </div>
+</section>
+{% endblock %}

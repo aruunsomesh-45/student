@@ -1,0 +1,52 @@
+[
+  {
+    "id": "TC001",
+    "title": "student_signup_login_and_role_dispatch",
+    "description": "Test student registration via POST /accounts/signup/student/ with valid details, verify account creation response, then login via POST /accounts/login/ with valid credentials, and confirm successful authentication. Finally, POST /accounts/dispatch/ with authenticated session should redirect to student assessment or results dashboard."
+  },
+  {
+    "id": "TC002",
+    "title": "teacher_signup_login_and_role_dispatch",
+    "description": "Test teacher registration via POST /accounts/signup/teacher/ with valid details, verify account creation response, then login via POST /accounts/login/ with valid credentials, and confirm successful authentication. Finally, POST /accounts/dispatch/ with authenticated session should redirect to teacher dashboard."
+  },
+  {
+    "id": "TC003",
+    "title": "login_with_invalid_credentials_and_dispatch_access_denied",
+    "description": "Attempt login via POST /accounts/login/ with invalid credentials and verify 400/401 error response. Then POST /accounts/dispatch/ without valid session and confirm access is denied with 302/401/403 response."
+  },
+  {
+    "id": "TC004",
+    "title": "student_assessment_submission_and_result_retrieval",
+    "description": "GET /assessments/take/ with authenticated student session to receive tier-specific questions. Submit completed assessment answers to /assessments/take/ and verify successful scoring response (200/302). Then GET /assessments/completed/<result_id>/ with valid result_id owned by student to retrieve detailed score breakdown."
+  },
+  {
+    "id": "TC005",
+    "title": "assessment_submission_with_missing_or_invalid_responses",
+    "description": "Submit assessment with missing or invalid answers to /assessments/take/ and verify 400 response with validation errors indicating incomplete or invalid responses."
+  },
+  {
+    "id": "TC006",
+    "title": "student_dashboard_results_and_pdf_report_access",
+    "description": "GET /dashboard/student/results/ with authenticated student having completed assessment to verify 200 response with score analytics and personalized playbook. Then GET /dashboard/student/pdf/ to confirm downloadable PDF summary is returned with 200 status."
+  },
+  {
+    "id": "TC007",
+    "title": "student_dashboard_access_without_completed_assessment",
+    "description": "Access /dashboard/student/results/ with authenticated student session but no completed assessment and verify appropriate empty-state guidance or redirect (200/302). Attempt GET /dashboard/student/pdf/ without assessment data and confirm 404/400 error indicating report cannot be generated."
+  },
+  {
+    "id": "TC008",
+    "title": "teacher_dashboard_cohort_analytics_and_roster_filtering",
+    "description": "GET /dashboard/teacher/ with authenticated teacher session to verify 200 response with cohort analytics, student roster, and stress watchlist. Apply search and filters by tier and modality and confirm filtered student list and updated cohort summaries are returned with 200 status."
+  },
+  {
+    "id": "TC009",
+    "title": "teacher_student_detail_and_mentoring_notes_persistence",
+    "description": "GET /dashboard/teacher/student/<student_id>/ with valid teacher session and student_id to retrieve student profile and mentoring notes (200). Save updated mentoring note and verify persistence with 200/302 response confirming update."
+  },
+  {
+    "id": "TC010",
+    "title": "unauthorized_access_to_teacher_dashboard_and_student_records",
+    "description": "Attempt GET /dashboard/teacher/ with student session or no authentication and verify access denied with 302/401/403. Access /dashboard/teacher/student/<student_id>/ without teacher authorization or with nonexistent student_id and confirm 403/404 response preventing unauthorized access."
+  }
+]

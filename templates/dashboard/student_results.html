@@ -1,0 +1,219 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    {% if submission %}
+        {{ submission.persona_title }} | Student Results
+    {% else %}
+        Student Assessment Portal
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="results-container">
+    {% if not has_submissions %}
+        <!-- Empty State for New Students -->
+        <div class="empty-results-card">
+            <div class="empty-icon-ring">🎓</div>
+            <h1 class="empty-title">Welcome to Your MindConnect Portal</h1>
+            <p class="empty-desc">
+                You haven't completed your diagnostic assessment yet. Take our 3-minute 
+                psychometric questionnaire to discover your dominant learning style, growth resilience, 
+                and receive a tailored study toolkit!
+            </p>
+            <div class="empty-meta-box">
+                <div><strong>Academic Tier:</strong> {{ tier_display }}</div>
+                <div><strong>Estimated Time:</strong> ~3 Minutes (12 Questions)</div>
+            </div>
+            <a href="{% url 'assessments:take_quiz' %}" class="btn btn-primary btn-lg">
+                <span>Start Diagnostic Assessment</span>
+                <span class="btn-arrow">→</span>
+            </a>
+        </div>
+    {% else %}
+        <!-- Historical Attempt Switcher (If multiple attempts exist) -->
+        {% if total_attempts > 1 %}
+            <div class="history-switcher-card">
+                <div class="history-header">
+                    <span class="history-icon">🕒</span>
+                    <span class="history-label">Assessment History ({{ total_attempts }} Attempts):</span>
+                </div>
+                <div class="history-pills">
+                    {% for sub in historical_submissions %}
+                        <a href="{% url 'dashboard:student_results_detail' submission_id=sub.id %}" 
+                           class="history-pill {% if sub.id == submission.id %}active{% endif %}">
+                            <span class="pill-title">{{ sub.persona_title }}</span>
+                            <span class="pill-date">{{ sub.submitted_at|date:"M d, Y" }}</span>
+                        </a>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endif %}
+
+        <!-- Persona Hero Banner -->
+        <div class="result-hero-card">
+            <div class="phase-badge phase-4">Student Learning Profile & Strategy Portal</div>
+            
+            <div class="persona-icon-ring">
+                {% if 'Visual' in submission.persona_title %}🎨
+                {% elif 'Hands-On' in submission.persona_title %}🛠️
+                {% elif 'Socratic' in submission.persona_title %}🗣️
+                {% elif 'Analytical' in submission.persona_title %}⚡
+                {% else %}🧠{% endif %}
+            </div>
+
+            <h1 class="persona-hero-title">{{ submission.persona_title }}</h1>
+            <p class="persona-tagline">"{{ submission.persona_tagline }}"</p>
+            
+            <div class="persona-meta-chips">
+                <span class="meta-chip">Student: <strong>{{ user.get_full_name|default:user.username }}</strong></span>
+                <span class="meta-chip">Level: <strong>{{ tier_display }}</strong></span>
+                <span class="meta-chip">Dominant: <strong>{{ submission.dominant_modality }} Learner</strong></span>
+                <span class="meta-chip">Tested: <strong>{{ submission.submitted_at|date:"F d, Y - H:i" }}</strong></span>
+                {% if submission.is_stress_alert %}
+                    <span class="meta-chip alert-chip">⚠️ High Stress Response Detected</span>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- 5-Metric Score Overview -->
+        <div class="scores-grid">
+            <div class="score-card">
+                <div class="score-header">
+                    <span class="score-icon">👁️</span>
+                    <span class="score-name">Visual Modality</span>
+                    <span class="score-val">{{ submission.visual_score }}%</span>
+                </div>
+                <div class="score-progress-bar">
+                    <div class="score-progress-fill visual-fill" data-score="{{ submission.visual_score }}"></div>
+                </div>
+                <p class="score-desc">Mind-maps, system architecture schemas, color-coded notes</p>
+            </div>
+
+            <div class="score-card">
+                <div class="score-header">
+                    <span class="score-icon">🎧</span>
+                    <span class="score-name">Auditory Modality</span>
+                    <span class="score-val">{{ submission.auditory_score }}%</span>
+                </div>
+                <div class="score-progress-bar">
+                    <div class="score-progress-fill auditory-fill" data-score="{{ submission.auditory_score }}"></div>
+                </div>
+                <p class="score-desc">Socratic dialogues, seminar debates, recorded lecture reviews</p>
+            </div>
+
+            <div class="score-card">
+                <div class="score-header">
+                    <span class="score-icon">🛠️</span>
+                    <span class="score-name">Kinesthetic Modality</span>
+                    <span class="score-val">{{ submission.kinesthetic_score }}%</span>
+                </div>
+                <div class="score-progress-bar">
+                    <div class="score-progress-fill kinesthetic-fill" data-score="{{ submission.kinesthetic_score }}"></div>
+                </div>
+                <p class="score-desc">Hands-on sandbox labs, live code, trial-and-error prototypes</p>
+            </div>
+
+            <div class="score-card">
+                <div class="score-header">
+                    <span class="score-icon">🌱</span>
+                    <span class="score-name">Growth Mindset</span>
+                    <span class="score-val">{{ submission.growth_score }}%</span>
+                </div>
+                <div class="score-progress-bar">
+                    <div class="score-progress-fill growth-fill" data-score="{{ submission.growth_score }}"></div>
+                </div>
+                <p class="score-desc">Resilience to critique, challenge appetite, persistence</p>
+            </div>
+
+            <div class="score-card">
+                <div class="score-header">
+                    <span class="score-icon">⚡</span>
+                    <span class="score-name">Stress & Pressure</span>
+                    <span class="score-val">{{ submission.stress_score }}%</span>
+                </div>
+                <div class="score-progress-bar">
+                    <div class="score-progress-fill stress-fill" data-score="{{ submission.stress_score }}"></div>
+                </div>
+                <p class="score-desc">Vulnerability to deadline stacking and surprise evaluations</p>
+            </div>
+        </div>
+
+        <!-- Diagnostic Summary & Teacher Guidance Overview -->
+        <div class="insights-dual-section">
+            <div class="insight-card">
+                <div class="insight-header">
+                    <span class="insight-icon">🔍</span>
+                    <h3>Psychometric Diagnostic Summary</h3>
+                </div>
+                <p class="insight-text">{{ submission.persona_summary }}</p>
+            </div>
+
+            <div class="insight-card">
+                <div class="insight-header">
+                    <span class="insight-icon">👨‍🏫</span>
+                    <h3>How Your Teachers Can Best Support You</h3>
+                </div>
+                <div class="playbook-pillar">
+                    <strong>🎯 Motivation Alignment:</strong>
+                    <p>{{ submission.teacher_motivation }}</p>
+                </div>
+                <div class="playbook-pillar">
+                    <strong>💬 Feedback Delivery:</strong>
+                    <p>{{ submission.teacher_communication }}</p>
+                </div>
+                <div class="playbook-pillar">
+                    <strong>⚠️ Support & Stress Cues:</strong>
+                    <p>{{ submission.teacher_caution }}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Actionable Student Study Toolkit -->
+        {% if strategies %}
+        <div class="toolkit-section">
+            <div class="toolkit-header">
+                <span class="toolkit-icon">💡</span>
+                <div>
+                    <h2>Your Tailored Study Toolkit</h2>
+                    <p class="toolkit-subtitle">Evidence-based study techniques customized for your level ({{ tier_display }}) and learning modality.</p>
+                </div>
+            </div>
+
+            <div class="strategies-grid">
+                {% for strat in strategies %}
+                    <div class="strategy-card">
+                        <span class="strategy-tag">{{ strat.tag }}</span>
+                        <h4 class="strategy-title">{{ strat.title }}</h4>
+                        <p class="strategy-desc">{{ strat.description }}</p>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Action Buttons -->
+        <div class="action-footer">
+            <button onclick="window.print()" class="btn btn-outline">
+                🖨️ Print / Save Summary
+            </button>
+            <a href="{% url 'assessments:take_quiz' %}" class="btn btn-primary">
+                🔄 Retake Assessment
+            </a>
+            <a href="{% url 'core:landing' %}" class="btn btn-secondary">
+                🏠 Home
+            </a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.score-progress-fill[data-score]').forEach(function(el) {
+        const score = el.getAttribute('data-score') || '0';
+        el.style.width = score + '%';
+    });
+});
+</script>
+{% endblock %}

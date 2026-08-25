@@ -1,0 +1,312 @@
+{% extends 'base.html' %}
+
+{% block title %}Assessment: {{ tier_display }}{% endblock %}
+
+{% block content %}
+<div class="assessment-container">
+    <!-- Header & Tier Switcher -->
+    <div class="assessment-header">
+        <div class="assessment-meta">
+            <div class="badge-pill">
+                <span class="badge-dot"></span>
+                <span>Tier: <strong>{{ tier_display }}</strong></span>
+            </div>
+            <h1 class="assessment-title">Adaptive Screening & Whole-Student Profile</h1>
+            <p class="assessment-subtitle">
+                A two-part screening flow: Part 1 assesses subject reading, awareness, reasoning, and learning styles. 
+                Part 2 maps your personality, career inclinations, wellbeing, and soft skills.
+            </p>
+        </div>
+
+        <!-- Tier Switcher Bar -->
+        <div class="tier-switcher-wrapper">
+            <span class="tier-switcher-label">Switch Academic Level:</span>
+            <div class="tier-pill-group">
+                {% for code, name in all_tiers %}
+                    <a href="?tier={{ code }}" class="tier-pill {% if code == active_tier %}active{% endif %}">
+                        {% if code == 'SCHOOL' %}🏫{% elif code == 'UG' %}🎓{% else %}🔬{% endif %}
+                        {{ name }}
+                    </a>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Sticky Progress Tracker -->
+    <div class="quiz-sticky-tracker" id="quizStickyTracker">
+        <div class="tracker-inner">
+            <div class="tracker-info">
+                <span class="tracker-count">
+                    Progress: <strong id="answeredCount">0</strong> / {{ total_questions }} Diagnostic Items
+                </span>
+                <span class="tracker-pct" id="progressPercentage">0% Completed</span>
+            </div>
+            <div class="progress-bar-container">
+                <div class="progress-bar-fill" id="progressBarFill" style="width: 0%;"></div>
+            </div>
+        </div>
+    </div>
+
+    {% if total_questions == 0 %}
+        <!-- Empty State if not seeded -->
+        <div class="empty-state-card">
+            <div style="font-size: 3.5rem; margin-bottom: 1rem;">📦</div>
+            <h2>No Questions Found for this Tier</h2>
+            <p>The screening question bank has not been seeded yet. Please run the seed command.</p>
+            <code class="code-pill">python manage.py seed_questions</code>
+        </div>
+    {% else %}
+        <!-- Quiz Form -->
+        <form method="POST" action="{% url 'assessments:take_quiz' %}" id="assessmentForm" class="quiz-form">
+            {% csrf_token %}
+            <input type="hidden" name="tier" value="{{ active_tier }}">
+
+            <div class="questions-list">
+                {% for q in questions %}
+                    <div class="question-card" id="qcard-{{ q.id }}" data-question-id="{{ q.id }}">
+                        <div class="question-card-header">
+                            <div class="question-number-pill">Q{{ forloop.counter }}</div>
+                            <div class="question-category-tag category-{{ q.category|lower }}">
+                                {% if q.category == 'READING' %}📖 Subject Knowledge — Reading Comprehension
+                                {% elif q.category == 'AWARENESS' %}🌍 Subject Knowledge — General Awareness
+                                {% elif q.category == 'PATTERN' %}🧩 Cognitive Aptitude — Pattern & Code
+                                {% elif q.category == 'LOGIC' %}⚡ Cognitive Aptitude — Logical Reasoning
+                                {% elif q.category == 'VARK' %}🎨 Learning Style Probe
+                                {% elif q.category == 'PERSONALITY' %}👤 Personality Archetype
+                                {% elif q.category == 'INTERESTS' %}🎯 Interests & Career Inclination
+                                {% elif q.category == 'WELLBEING' %}🌱 Wellbeing & Motivation
+                                {% elif q.category == 'SOFTSKILLS' %}🤝 Soft Skills & Behavior
+                                {% else %}📝 Screening Diagnostic{% endif %}
+                            </div>
+                        </div>
+
+                        <div class="question-body">
+                            <h3 class="question-prompt">{{ q.prompt }}</h3>
+                            {% if q.subtitle %}
+                                <div class="question-subtitle">{{ q.subtitle }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="choices-grid">
+                            {% for c in q.choices.all %}
+                                <label class="choice-option-card" for="choice_{{ c.id }}">
+                                    <input 
+                                        type="radio" 
+                                        name="question_{{ q.id }}" 
+                                        id="choice_{{ c.id }}" 
+                                        value="{{ c.id }}" 
+                                        class="choice-radio-input" 
+                                        required
+                                        onchange="updateQuizProgress()"
+                                    >
+                                    <div class="choice-custom-radio">
+                                        <div class="radio-inner-dot"></div>
+                                    </div>
+                                    <div class="choice-content">
+                                        <span class="choice-letter">Option {{ forloop.counter|stringformat:"c"|slice:":1"|upper }}</span>
+                                        <p class="choice-text">{{ c.text }}</p>
+                                    </div>
+                                </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% endfor %}
+
+                <!-- Part 2: Open Message to Teacher (Free Text, Non-Scored) -->
+                <div class="question-card" style="border-left: 4px solid var(--accent-violet);">
+                    <div class="question-card-header">
+                        <div class="question-number-pill" style="background: rgba(139, 92, 246, 0.2); color: #c4b5fd;">💌</div>
+                        <div class="question-category-tag" style="background: rgba(139, 92, 246, 0.15); color: #c4b5fd;">
+                            Part 2 • Open Message to Teacher (Optional)
+                        </div>
+                    </div>
+
+                    <div class="question-body">
+                        <h3 class="question-prompt">
+                            “Is there anything you’d like your teacher to know about you — a challenge you’re facing, something you’re proud of, or how you learn best?”
+                        </h3>
+                        <div class="question-subtitle">
+                            This message is shared only with your mentor/teacher to personalize their 1-on-1 guidance.
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 1.2rem;">
+                        <textarea 
+                            name="teacher_message" 
+                            rows="4" 
+                            placeholder="Share any thoughts, challenges, or goals you would like your educator to know..." 
+                            class="filter-search-input"
+                            style="width: 100%; border-radius: var(--radius-md); resize: vertical; padding: 1rem; line-height: 1.5;"
+                        ></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Floating Submission Banner -->
+            <!-- Floating Submission Banner -->
+            <div class="quiz-submit-bar">
+                <div id="unansweredToast" style="display: none; background: rgba(244, 63, 94, 0.15); border: 1px solid rgba(244, 63, 94, 0.4); border-radius: var(--radius-md); padding: 0.85rem 1.2rem; margin-bottom: 0.8rem; backdrop-filter: blur(12px);">
+                    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;">
+                        <div style="display: flex; align-items: center; gap: 0.5rem; color: #fecdd3; font-weight: 600; font-size: 0.95rem;">
+                            <span>⚠️</span>
+                            <span id="unansweredToastText">Unanswered Questions:</span>
+                        </div>
+                        <div id="unansweredPillsContainer" style="display: flex; flex-wrap: wrap; gap: 0.35rem;"></div>
+                    </div>
+                </div>
+
+                <div class="submit-bar-container">
+                    <div class="submit-summary">
+                        <span class="status-indicator"></span>
+                        <span id="submitStatusText">0 of {{ total_questions }} questions answered</span>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-lg" id="submitQuizBtn">
+                        <span>Submit Assessment & Generate Profile</span>
+                        <span class="btn-arrow">→</span>
+                    </button>
+                </div>
+            </div>
+        </form>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<style>
+.unanswered-pill {
+    background: rgba(244, 63, 94, 0.3);
+    color: #ffe4e6;
+    border: 1px solid rgba(244, 63, 94, 0.6);
+    border-radius: 6px;
+    padding: 0.2rem 0.55rem;
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.unanswered-pill:hover {
+    background: var(--accent-rose);
+    color: #fff;
+    transform: translateY(-1px);
+}
+.question-card.missing-pulse {
+    border-color: var(--accent-rose) !important;
+    box-shadow: 0 0 15px rgba(244, 63, 94, 0.35) !important;
+}
+</style>
+
+<script>
+function scrollToQuestion(index) {
+    const cards = document.querySelectorAll('.question-card[data-question-id]');
+    if (cards[index]) {
+        cards[index].scrollIntoView({ behavior: 'smooth', block: 'center' });
+        cards[index].classList.add('missing-pulse');
+        setTimeout(() => cards[index].classList.remove('missing-pulse'), 2000);
+    }
+}
+
+function updateQuizProgress() {
+    const questionCards = document.querySelectorAll('.question-card[data-question-id]');
+    const totalQuestions = questionCards.length;
+    if (totalQuestions === 0) return;
+
+    const answeredQuestions = new Set();
+    const checkedRadios = document.querySelectorAll('.choice-radio-input:checked');
+    
+    checkedRadios.forEach(function(radio) {
+        answeredQuestions.add(radio.name);
+        
+        // Highlight active choice card
+        const currentCard = radio.closest('.question-card');
+        if (currentCard) {
+            currentCard.classList.add('answered');
+            currentCard.classList.remove('missing-pulse');
+            currentCard.querySelectorAll('.choice-option-card').forEach(function(card) {
+                card.classList.remove('selected');
+            });
+            const parentOption = radio.closest('.choice-option-card');
+            if (parentOption) {
+                parentOption.classList.add('selected');
+            }
+        }
+    });
+
+    const count = answeredQuestions.size;
+    const pct = Math.round((count / totalQuestions) * 100);
+
+    // Update UI elements
+    const countEl = document.getElementById('answeredCount');
+    const pctEl = document.getElementById('progressPercentage');
+    const fillEl = document.getElementById('progressBarFill');
+    const statusText = document.getElementById('submitStatusText');
+
+    if (countEl) countEl.innerText = count.toString();
+    if (pctEl) pctEl.innerText = pct + '% Completed';
+    if (fillEl) fillEl.style.width = pct + '%';
+    if (statusText) {
+        if (count === totalQuestions) {
+            statusText.innerHTML = '<strong style="color: var(--accent-emerald);">✓ All ' + totalQuestions + ' diagnostic items answered! Ready to submit.</strong>';
+            const toast = document.getElementById('unansweredToast');
+            if (toast) toast.style.display = 'none';
+        } else {
+            statusText.innerText = count + ' of ' + totalQuestions + ' questions answered (' + (totalQuestions - count) + ' remaining)';
+        }
+    }
+}
+
+// Intercept form submit to notify exact missing question numbers
+document.addEventListener('DOMContentLoaded', function() {
+    updateQuizProgress();
+
+    const form = document.getElementById('assessmentForm');
+    if (!form) return;
+
+    form.addEventListener('submit', function(e) {
+        const questionCards = document.querySelectorAll('.question-card[data-question-id]');
+        const missingIndices = [];
+
+        questionCards.forEach(function(card, index) {
+            const radioChecked = card.querySelector('.choice-radio-input:checked');
+            if (!radioChecked) {
+                missingIndices.push(index + 1);
+                card.classList.add('missing-pulse');
+            } else {
+                card.classList.remove('missing-pulse');
+            }
+        });
+
+        if (missingIndices.length > 0) {
+            e.preventDefault();
+
+            // Display toast with exact missing question numbers
+            const toast = document.getElementById('unansweredToast');
+            const toastText = document.getElementById('unansweredToastText');
+            const pillsContainer = document.getElementById('unansweredPillsContainer');
+
+            if (toast && pillsContainer) {
+                toastText.innerText = 'Please answer all questions (' + missingIndices.length + ' missing):';
+                pillsContainer.innerHTML = '';
+
+                missingIndices.forEach(function(qNum) {
+                    const pill = document.createElement('button');
+                    pill.type = 'button';
+                    pill.className = 'unanswered-pill';
+                    pill.innerText = '#' + qNum;
+                    pill.title = 'Click to go to Question #' + qNum;
+                    pill.onclick = function() {
+                        scrollToQuestion(qNum - 1);
+                    };
+                    pillsContainer.appendChild(pill);
+                });
+
+                toast.style.display = 'block';
+            }
+
+            // Scroll to the first missing question
+            scrollToQuestion(missingIndices[0] - 1);
+            return false;
+        }
+    });
+});
+</script>
+{% endblock %}

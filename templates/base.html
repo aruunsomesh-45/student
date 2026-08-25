@@ -1,0 +1,193 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Student Mindset & Personality Assessment{% endblock %} | MindConnect</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- GSAP Motion Engine & ScrollTrigger -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+
+    <!-- Custom Modern Antigravity CSS -->
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body class="antigravity-body">
+    <!-- Ambient Spatial Depth Lighting & Grid -->
+    <div class="spatial-layer-wrapper" aria-hidden="true">
+        <div class="ambient-orb orb-1"></div>
+        <div class="ambient-orb orb-2"></div>
+        <div class="ambient-orb orb-3"></div>
+        <div class="spatial-grid-overlay"></div>
+    </div>
+
+    <!-- Navigation Bar -->
+    <header class="site-header">
+        <div class="nav-container">
+            <a href="{% url 'core:landing' %}" class="brand-logo">
+                <span class="brand-icon">🧠</span>
+                <span class="brand-name">Mind<span class="highlight">Connect</span></span>
+            </a>
+
+            <nav class="nav-menu">
+                <a href="{% url 'core:landing' %}" class="nav-link">Home</a>
+                
+                {% if user.is_authenticated %}
+                    {% if user.is_teacher_user %}
+                        <a href="{% url 'dashboard:teacher_overview' %}" class="nav-link nav-highlight">Teacher Dashboard</a>
+                    {% else %}
+                        <a href="{% url 'dashboard:student_results' %}" class="nav-link">My Results</a>
+                        <a href="{% url 'assessments:take_quiz' %}" class="nav-link nav-highlight">Take Assessment</a>
+                    {% endif %}
+                {% endif %}
+            </nav>
+
+            <div class="nav-actions">
+                {% if user.is_authenticated %}
+                    <div class="user-badge">
+                        <span class="user-avatar avatar-{{ user.role|lower }}">
+                            {{ user.first_name|default:user.username|make_list|first|upper }}
+                        </span>
+                        <div class="user-meta">
+                            <span class="user-name">{{ user.get_full_name|default:user.username }}</span>
+                            <span class="user-role-tag {{ user.role|lower }}">{{ user.get_role_display }}</span>
+                        </div>
+                    </div>
+                    <a href="{% url 'accounts:logout' %}" class="btn btn-outline btn-sm">Logout</a>
+                {% else %}
+                    <div class="google-onetap-wrapper" id="googleOneTapWrapper">
+                        <a href="{% url 'accounts:login' %}" class="btn btn-outline btn-sm login-btn-trigger">
+                            <span>Log In</span>
+                            <svg class="google-mini-icon" width="13" height="13" viewBox="0 0 48 48" style="margin-left: 2px;">
+                                <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+                                <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+                                <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+                                <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+                            </svg>
+                        </a>
+
+                        <!-- Google One-Tap Interactive Hover Popover -->
+                        <div class="google-onetap-card" id="googleOneTapCard" aria-label="Google One Tap Sign In">
+                            <!-- Top Google Header -->
+                            <div class="onetap-header">
+                                <div class="onetap-brand">
+                                    <svg width="20" height="20" viewBox="0 0 48 48" class="onetap-google-logo">
+                                        <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+                                        <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+                                        <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+                                        <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+                                    </svg>
+                                    <div class="onetap-title-group">
+                                        <span class="onetap-title">Sign in with Google</span>
+                                        <span class="onetap-subtitle">to continue to <strong>MindConnect</strong></span>
+                                    </div>
+                                </div>
+                                <span class="onetap-secure-badge">
+                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/></svg>
+                                    Auto-detected
+                                </span>
+                            </div>
+
+                            <!-- Account Card Row -->
+                            <div class="onetap-account-row" id="onetapAccountRow">
+                                <div class="onetap-avatar-box">
+                                    <div class="onetap-avatar" id="onetapAvatar">A</div>
+                                    <div class="onetap-badge-g">
+                                        <svg width="10" height="10" viewBox="0 0 48 48">
+                                            <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+                                            <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+                                        </svg>
+                                    </div>
+                                </div>
+                                <div class="onetap-info">
+                                    <div class="onetap-user-name" id="onetapName">Alex Mercer</div>
+                                    <div class="onetap-user-email" id="onetapEmail">alex.mercer@gmail.com</div>
+                                    <div class="onetap-user-role" id="onetapRoleTag">🎓 Student Account (UG B.Tech)</div>
+                                </div>
+                                <div class="onetap-checkmark">✓</div>
+                            </div>
+
+                            <!-- Quick Persona Switcher -->
+                            <div class="onetap-persona-selector">
+                                <span class="switcher-hint">Google Persona:</span>
+                                <button type="button" class="persona-chip active" id="chipAlex" onclick="switchGoogleOneTap('Alex Mercer', 'alex.mercer@gmail.com', 'STUDENT', 'UG', 'A', '🎓 Student Account (UG B.Tech)')">
+                                    🎒 Alex (Student)
+                                </button>
+                                <button type="button" class="persona-chip" id="chipSarah" onclick="switchGoogleOneTap('Dr. Sarah Jenkins', 's.jenkins@demo.edu', 'TEACHER', 'COLLEGE', 'S', '👨‍🏫 Teacher Account (Horizon Academy)')">
+                                    👨‍🏫 Sarah (Teacher)
+                                </button>
+                            </div>
+
+                            <!-- Continue as [Name] CTA Button -->
+                            <a href="{% url 'accounts:google_simulate_callback' %}?name=Alex+Mercer&email=alex.mercer@gmail.com&role=STUDENT&tier=UG" class="onetap-continue-btn" id="oneTapContinueLink" onclick="triggerOneTapLoginAnimation(event, this)">
+                                <span class="onetap-btn-text" id="onetapBtnText">Continue as Alex</span>
+                                <span class="onetap-btn-loader" id="onetapBtnLoader" style="display:none;">
+                                    <svg class="spinner-svg" width="16" height="16" viewBox="0 0 50 50">
+                                        <circle class="path" cx="25" cy="25" r="20" fill="none" stroke-width="5"></circle>
+                                    </svg>
+                                    Authenticating...
+                                </span>
+                            </a>
+
+                            <!-- Privacy & Consent Footer -->
+                            <div class="onetap-card-footer">
+                                <span>🔒 To continue, Google shares your profile & email with MindConnect.</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="dropdown-wrapper">
+                        <button class="btn btn-primary btn-sm">Register</button>
+                        <div class="dropdown-menu">
+                            <a href="{% url 'accounts:signup_student' %}" class="dropdown-item">🎒 As a Student</a>
+                            <a href="{% url 'accounts:signup_teacher' %}" class="dropdown-item">👨‍🏫 As a Teacher</a>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </header>
+
+    <!-- Global Flash Messages -->
+    {% if messages %}
+        <div class="messages-container">
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }}">
+                    <span class="alert-icon">
+                        {% if message.tags == 'success' %}✓{% elif message.tags == 'error' %}✕{% elif message.tags == 'warning' %}⚠️{% else %}ℹ️{% endif %}
+                    </span>
+                    <span class="alert-text">{{ message }}</span>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <!-- Main Content Body -->
+    <main class="main-content">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="site-footer">
+        <div class="footer-container">
+            <p>© 2026 MindConnect Platform. Empowering student-teacher empathy and personalized learning.</p>
+            <div class="footer-badges">
+                <span class="badge">School (10th/12th)</span>
+                <span class="badge">Undergraduate</span>
+                <span class="badge">Postgraduate</span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Antigravity Motion Engine Script -->
+    <script src="{% static 'js/antigravity.js' %}"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

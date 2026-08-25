@@ -1,0 +1,146 @@
+{% extends 'base.html' %}
+
+{% block title %}Assessment Result: {{ submission.persona_title }}{% endblock %}
+
+{% block content %}
+<div class="results-container">
+    <!-- Success Celebration Banner -->
+    <div class="result-hero-card">
+        <div class="phase-badge phase-2">Phase 2 Completed: Dynamic Assessment Engine & Psychometric Vector Calculation</div>
+        
+        <div class="persona-icon-ring">
+            {% if 'Visual' in submission.persona_title %}🎨
+            {% elif 'Hands-On' in submission.persona_title %}🛠️
+            {% elif 'Socratic' in submission.persona_title %}🗣️
+            {% elif 'Analytical' in submission.persona_title %}⚡
+            {% else %}🧠{% endif %}
+        </div>
+
+        <h1 class="persona-hero-title">{{ submission.persona_title }}</h1>
+        <p class="persona-tagline">"{{ submission.persona_tagline }}"</p>
+        
+        <div class="persona-meta-chips">
+            <span class="meta-chip">Level: <strong>{{ tier_display }}</strong></span>
+            <span class="meta-chip">Dominant: <strong>{{ submission.dominant_modality }} Learner</strong></span>
+            <span class="meta-chip">Completed: <strong>{{ submission.submitted_at|date:"F d, Y - H:i" }}</strong></span>
+            {% if submission.is_stress_alert %}
+                <span class="meta-chip alert-chip">⚠️ High Stress Response Detected</span>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- 5-Metric Score Overview -->
+    <div class="scores-grid">
+        <div class="score-card">
+            <div class="score-header">
+                <span class="score-icon">👁️</span>
+                <span class="score-name">Visual Modality</span>
+                <span class="score-val">{{ submission.visual_score }}%</span>
+            </div>
+            <div class="score-progress-bar">
+                <div class="score-progress-fill visual-fill" data-score="{{ submission.visual_score }}"></div>
+            </div>
+            <p class="score-desc">Mind-maps, architectural diagrams, color-coding</p>
+        </div>
+
+        <div class="score-card">
+            <div class="score-header">
+                <span class="score-icon">🎧</span>
+                <span class="score-name">Auditory Modality</span>
+                <span class="score-val">{{ submission.auditory_score }}%</span>
+            </div>
+            <div class="score-progress-bar">
+                <div class="score-progress-fill auditory-fill" data-score="{{ submission.auditory_score }}"></div>
+            </div>
+            <p class="score-desc">Verbal explanation, seminar debates, podcasts</p>
+        </div>
+
+        <div class="score-card">
+            <div class="score-header">
+                <span class="score-icon">🛠️</span>
+                <span class="score-name">Kinesthetic Modality</span>
+                <span class="score-val">{{ submission.kinesthetic_score }}%</span>
+            </div>
+            <div class="score-progress-bar">
+                <div class="score-progress-fill kinesthetic-fill" data-score="{{ submission.kinesthetic_score }}"></div>
+            </div>
+            <p class="score-desc">Hands-on labs, live code, trial-and-error</p>
+        </div>
+
+        <div class="score-card">
+            <div class="score-header">
+                <span class="score-icon">🌱</span>
+                <span class="score-name">Growth Mindset</span>
+                <span class="score-val">{{ submission.growth_score }}%</span>
+            </div>
+            <div class="score-progress-bar">
+                <div class="score-progress-fill growth-fill" data-score="{{ submission.growth_score }}"></div>
+            </div>
+            <p class="score-desc">Resilience to critique, challenge appetite</p>
+        </div>
+
+        <div class="score-card">
+            <div class="score-header">
+                <span class="score-icon">⚡</span>
+                <span class="score-name">Stress & Pressure</span>
+                <span class="score-val">{{ submission.stress_score }}%</span>
+            </div>
+            <div class="score-progress-bar">
+                <div class="score-progress-fill stress-fill" data-score="{{ submission.stress_score }}"></div>
+            </div>
+            <p class="score-desc">Exam anxiety & deadline overload vulnerability</p>
+        </div>
+    </div>
+
+    <!-- Psychometric Profile Deep-Dive -->
+    <div class="insights-dual-section">
+        <div class="insight-card">
+            <div class="insight-header">
+                <span class="insight-icon">🔍</span>
+                <h3>Psychometric Diagnostic Summary</h3>
+            </div>
+            <p class="insight-text">{{ submission.persona_summary }}</p>
+        </div>
+
+        <div class="insight-card">
+            <div class="insight-header">
+                <span class="insight-icon">👨‍🏫</span>
+                <h3>Teacher & Mentor Guidance Playbook</h3>
+            </div>
+            <div class="playbook-pillar">
+                <strong>🎯 Motivation Trigger:</strong>
+                <p>{{ submission.teacher_motivation }}</p>
+            </div>
+            <div class="playbook-pillar">
+                <strong>💬 Communication Vector:</strong>
+                <p>{{ submission.teacher_communication }}</p>
+            </div>
+            <div class="playbook-pillar">
+                <strong>⚠️ Caution / Stress Indicator:</strong>
+                <p>{{ submission.teacher_caution }}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="action-footer">
+        <a href="{% url 'assessments:take_quiz' %}" class="btn btn-outline">
+            🔄 Retake Assessment
+        </a>
+        <a href="{% url 'core:landing' %}" class="btn btn-secondary">
+            🏠 Return to Home
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.score-progress-fill[data-score]').forEach(function(el) {
+        const score = el.getAttribute('data-score') || '0';
+        el.style.width = score + '%';
+    });
+});
+</script>
+{% endblock %}

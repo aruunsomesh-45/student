@@ -1,0 +1,392 @@
+{% extends 'base.html' %}
+
+{% block title %}Teacher Command Center | Classroom Overview{% endblock %}
+
+{% block content %}
+<div class="teacher-dashboard-container">
+    <!-- Header & Action Bar -->
+    <div class="teacher-header">
+        <div class="teacher-meta">
+            <div class="badge-pill">
+                <span class="badge-dot"></span>
+                <span>Teacher Command Center</span>
+            </div>
+            <h1 class="teacher-title">Classroom Mindset & Personality Roster</h1>
+            <p class="teacher-subtitle">
+                Monitor student learning modalities, growth resilience indexes, and identify early stress signals 
+                to personalize your lecture delivery and 1-on-1 mentorship.
+            </p>
+        </div>
+
+        <div class="teacher-quick-actions">
+            <button type="button" class="btn btn-outline btn-sm" onclick="openKeyModal()">
+                🔑 LLM API Key: <strong style="color: var(--accent-cyan);">{{ saved_llm_key_masked }}</strong>
+            </button>
+            <button type="button" class="btn btn-primary btn-sm" onclick="fetchCohortAIAnalysis()">
+                ✨ Generate AI Class Strategy
+            </button>
+        </div>
+    </div>
+
+    <!-- Cohort Analytics (4 Key Metric Cards) -->
+    <div class="cohort-metrics-grid">
+        <!-- Card 1: Total Students Tested -->
+        <div class="metric-card">
+            <div class="metric-icon-wrap icon-blue">👥</div>
+            <div class="metric-content">
+                <span class="metric-label">Students Evaluated</span>
+                <div class="metric-value">{{ cohort_stats.total_students }}</div>
+                <span class="metric-subtext">Across School, UG, & PG tiers</span>
+            </div>
+        </div>
+
+        <!-- Card 2: Dominant Class Modality -->
+        <div class="metric-card">
+            <div class="metric-icon-wrap icon-cyan">🎨</div>
+            <div class="metric-content">
+                <span class="metric-label">Dominant Modality</span>
+                <div class="metric-value">{{ cohort_stats.dominant_modality }}</div>
+                <div class="mini-modality-bar">
+                    <span class="mod-seg mod-v" title="Visual: {{ cohort_stats.visual_pct }}%" data-width="{{ cohort_stats.visual_pct }}"></span>
+                    <span class="mod-seg mod-k" title="Kinesthetic: {{ cohort_stats.kinesthetic_pct }}%" data-width="{{ cohort_stats.kinesthetic_pct }}"></span>
+                    <span class="mod-seg mod-a" title="Auditory: {{ cohort_stats.auditory_pct }}%" data-width="{{ cohort_stats.auditory_pct }}"></span>
+                </div>
+                <div class="mini-mod-legend">
+                    <span>V: {{ cohort_stats.visual_pct }}%</span>
+                    <span>K: {{ cohort_stats.kinesthetic_pct }}%</span>
+                    <span>A: {{ cohort_stats.auditory_pct }}%</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card 3: Class Average Growth Mindset -->
+        <div class="metric-card">
+            <div class="metric-icon-wrap icon-purple">🌱</div>
+            <div class="metric-content">
+                <span class="metric-label">Avg Growth Mindset</span>
+                <div class="metric-value">{{ cohort_stats.avg_growth }}%</div>
+                <span class="metric-subtext">
+                    <strong style="color: var(--accent-emerald);">{{ cohort_stats.growth_champions_count }}</strong> High Growth Champions
+                </span>
+            </div>
+        </div>
+
+        <!-- Card 4: High Stress Watchlist -->
+        <div class="metric-card {% if cohort_stats.stress_watchlist_count > 0 %}card-alert{% endif %}">
+            <div class="metric-icon-wrap icon-rose">⚡</div>
+            <div class="metric-content">
+                <span class="metric-label">Stress Watchlist</span>
+                <div class="metric-value {% if cohort_stats.stress_watchlist_count > 0 %}text-rose{% else %}text-emerald{% endif %}">
+                    {{ cohort_stats.stress_watchlist_count }}
+                </div>
+                <span class="metric-subtext">
+                    {% if cohort_stats.stress_watchlist_count > 0 %}
+                        Requires deadline & exam support
+                    {% else %}
+                        No high anxiety flags
+                    {% endif %}
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search & Filter Controls Toolbar -->
+    <div class="roster-toolbar-card">
+        <form method="GET" action="{% url 'dashboard:teacher_overview' %}" class="filter-form" id="filterForm">
+            <!-- Search Bar -->
+            <div class="search-input-wrap">
+                <span class="search-icon">🔍</span>
+                <input 
+                    type="text" 
+                    name="q" 
+                    value="{{ search_query }}" 
+                    placeholder="Search student name, email, grade, or persona..." 
+                    class="filter-search-input"
+                >
+                {% if search_query %}
+                    <a href="{% url 'dashboard:teacher_overview' %}" class="clear-search-btn">✕</a>
+                {% endif %}
+            </div>
+
+            <!-- Filter Dropdowns -->
+            <div class="filter-selects-group">
+                <!-- Tier Filter -->
+                <select name="tier" class="filter-select" onchange="this.form.submit()">
+                    <option value="">All Academic Tiers</option>
+                    {% for code, name in all_tiers %}
+                        <option value="{{ code }}" {% if code == active_tier %}selected{% endif %}>{{ name }}</option>
+                    {% endfor %}
+                </select>
+
+                <!-- Status Filter -->
+                <select name="status" class="filter-select" onchange="this.form.submit()">
+                    <option value="">All Statuses</option>
+                    <option value="HIGH_STRESS" {% if active_status == 'HIGH_STRESS' %}selected{% endif %}>⚠️ High Stress Watchlist</option>
+                    <option value="HIGH_GROWTH" {% if active_status == 'HIGH_GROWTH' %}selected{% endif %}>🌱 High Growth Mindset</option>
+                </select>
+
+                <!-- Sort Filter -->
+                <select name="sort" class="filter-select" onchange="this.form.submit()">
+                    <option value="newest" {% if sort_by == 'newest' %}selected{% endif %}>Newest Submissions</option>
+                    <option value="oldest" {% if sort_by == 'oldest' %}selected{% endif %}>Oldest Submissions</option>
+                    <option value="stress_desc" {% if sort_by == 'stress_desc' %}selected{% endif %}>Highest Stress First</option>
+                    <option value="growth_desc" {% if sort_by == 'growth_desc' %}selected{% endif %}>Highest Growth First</option>
+                    <option value="name_asc" {% if sort_by == 'name_asc' %}selected{% endif %}>Name (A-Z)</option>
+                </select>
+
+                <button type="submit" class="btn btn-secondary btn-sm">Filter</button>
+            </div>
+        </form>
+
+        <!-- Active Filter Indicator & Reset -->
+        {% if active_tier or active_status or search_query or sort_by != 'newest' %}
+            <div class="active-filters-row">
+                <span class="active-filter-label">Active Filters ({{ total_matching }} Matching):</span>
+                {% if active_tier %}<span class="filter-badge">Tier: {{ active_tier }}</span>{% endif %}
+                {% if active_status %}<span class="filter-badge">Status: {{ active_status }}</span>{% endif %}
+                {% if search_query %}<span class="filter-badge">Search: "{{ search_query }}"</span>{% endif %}
+                <a href="{% url 'dashboard:teacher_overview' %}" class="reset-filters-link">Clear All Filters</a>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Student Roster Grid -->
+    {% if total_matching == 0 %}
+        <div class="empty-roster-card">
+            <div style="font-size: 3rem; margin-bottom: 0.8rem;">📋</div>
+            {% if cohort_stats.total_students == 0 %}
+                <h3>No Students Evaluated Yet</h3>
+                <p>Share the assessment with your students. As soon as a student completes and submits the questions, their psychometric profile and 1-on-1 playbook will appear here in real-time.</p>
+                <a href="{% url 'assessments:take_quiz' %}" class="btn btn-primary btn-sm">📝 Open Assessment Test</a>
+            {% else %}
+                <h3>No Students Matched Your Query</h3>
+                <p>Try adjusting your search keywords or clearing active filters to see all student records.</p>
+                <a href="{% url 'dashboard:teacher_overview' %}" class="btn btn-outline btn-sm">Reset Filters</a>
+            {% endif %}
+        </div>
+    {% else %}
+        <div class="student-roster-grid">
+            {% for sub in submissions %}
+                <div class="student-card {% if sub.is_stress_alert %}student-card-alert{% endif %}">
+                    <!-- Card Top: Student Avatar & Info -->
+                    <div class="student-card-header">
+                        <div class="student-avatar" data-avatar-color="{{ sub.student.avatar_color|default:'#6366f1' }}">
+                            {{ sub.student.first_name|default:sub.student.username|make_list|first|upper }}
+                        </div>
+                        <div class="student-title-meta">
+                            <h3 class="student-name">{{ sub.student.get_full_name|default:sub.student.username }}</h3>
+                            <span class="student-tier-tag">{{ sub.get_tier_display }} • {{ sub.student.grade_or_year|default:"General" }}</span>
+                        </div>
+                        {% if sub.is_stress_alert %}
+                            <span class="stress-warning-pill" title="Stress Score: {{ sub.stress_score }}%">⚠️ Alert</span>
+                        {% endif %}
+                    </div>
+
+                    <!-- Persona Badge -->
+                    <div class="persona-chip-badge">
+                        <span class="persona-chip-icon">
+                            {% if 'Visual' in sub.persona_title %}🎨
+                            {% elif 'Hands-On' in sub.persona_title %}🛠️
+                            {% elif 'Socratic' in sub.persona_title %}🗣️
+                            {% elif 'Analytical' in sub.persona_title %}⚡
+                            {% else %}🧠{% endif %}
+                        </span>
+                        <div class="persona-chip-text">
+                            <strong>{{ sub.persona_title }}</strong>
+                            <span>{{ sub.dominant_modality }} Dominant</span>
+                        </div>
+                    </div>
+
+                    <!-- Mini 5-Dimension Score Preview -->
+                    <div class="mini-scores-container">
+                        <div class="mini-score-row">
+                            <span class="mini-score-label">Visual</span>
+                            <div class="mini-bar-track">
+                                <div class="mini-bar-fill visual-fill" data-score="{{ sub.visual_score }}"></div>
+                            </div>
+                            <span class="mini-score-num">{{ sub.visual_score }}%</span>
+                        </div>
+                        <div class="mini-score-row">
+                            <span class="mini-score-label">Kinesthetic</span>
+                            <div class="mini-bar-track">
+                                <div class="mini-bar-fill kinesthetic-fill" data-score="{{ sub.kinesthetic_score }}"></div>
+                            </div>
+                            <span class="mini-score-num">{{ sub.kinesthetic_score }}%</span>
+                        </div>
+                        <div class="mini-score-row">
+                            <span class="mini-score-label">Auditory</span>
+                            <div class="mini-bar-track">
+                                <div class="mini-bar-fill auditory-fill" data-score="{{ sub.auditory_score }}"></div>
+                            </div>
+                            <span class="mini-score-num">{{ sub.auditory_score }}%</span>
+                        </div>
+                        <div class="mini-score-row">
+                            <span class="mini-score-label">Growth</span>
+                            <div class="mini-bar-track">
+                                <div class="mini-bar-fill growth-fill" data-score="{{ sub.growth_score }}"></div>
+                            </div>
+                            <span class="mini-score-num">{{ sub.growth_score }}%</span>
+                        </div>
+                        <div class="mini-score-row">
+                            <span class="mini-score-label">Stress</span>
+                            <div class="mini-bar-track">
+                                <div class="mini-bar-fill stress-fill" data-score="{{ sub.stress_score }}"></div>
+                            </div>
+                            <span class="mini-score-num" {% if sub.is_stress_alert %}style="color: var(--accent-rose); font-weight:700;"{% endif %}>{{ sub.stress_score }}%</span>
+                        </div>
+                    </div>
+
+                    <!-- Card Footer: Quick Actions -->
+                    <div class="student-card-footer">
+                        <span class="submission-date">{{ sub.submitted_at|date:"M d, Y" }}</span>
+                        <a href="{% url 'dashboard:submission_playbook' submission_id=sub.id %}" class="btn btn-primary btn-sm">
+                            <span>1-on-1 Playbook</span>
+                            <span class="btn-arrow">→</span>
+                        </a>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+</div>
+
+<!-- ==========================================================================
+     MODAL 1: LLM API Key Configuration
+     ========================================================================== -->
+<div id="llmKeyModal" class="modal-overlay" style="display: none;">
+    <div class="modal-card">
+        <div class="modal-header">
+            <div style="display: flex; align-items: center; gap: 0.6rem;">
+                <span style="font-size: 1.5rem;">🔑</span>
+                <h3 class="modal-title">Configure LLM Pedagogical Engine</h3>
+            </div>
+            <button type="button" class="modal-close-btn" onclick="closeKeyModal()">✕</button>
+        </div>
+
+        <form method="POST" action="{% url 'dashboard:save_llm_key' %}" class="modal-body">
+            {% csrf_token %}
+            <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 1.2rem; line-height: 1.5;">
+                Enter your <strong>Google Gemini API Key</strong> (or compatible LLM key) to empower the Teacher Co-Pilot with 
+                live classroom cohort dynamics, curriculum adaptation plans, and individual lesson adjustments.
+            </p>
+
+            <div class="form-group" style="margin-bottom: 1.2rem;">
+                <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.4rem;">API Key:</label>
+                <input 
+                    type="password" 
+                    name="api_key" 
+                    placeholder="AIzaSy... (leave blank to reset to offline synthesis)" 
+                    class="filter-search-input"
+                    style="width: 100%;"
+                >
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 0.8rem; margin-top: 1.5rem;">
+                <button type="button" class="btn btn-outline btn-sm" onclick="closeKeyModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary btn-sm">Save & Activate AI</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ==========================================================================
+     MODAL 2: AI Cohort Analysis Viewer
+     ========================================================================== -->
+<div id="aiAnalysisModal" class="modal-overlay" style="display: none;">
+    <div class="modal-card modal-card-lg">
+        <div class="modal-header">
+            <div style="display: flex; align-items: center; gap: 0.6rem;">
+                <span style="font-size: 1.6rem;">✨</span>
+                <h3 class="modal-title">AI Classroom Cohort Pedagogical Strategy</h3>
+            </div>
+            <button type="button" class="modal-close-btn" onclick="closeAIModal()">✕</button>
+        </div>
+
+        <div class="modal-body" id="aiModalBody">
+            <div id="aiLoadingSpinner" style="text-align: center; padding: 3rem 1rem;">
+                <div class="spinner-ring"></div>
+                <p style="margin-top: 1rem; color: var(--text-secondary);">Synthesizing classroom psychometrics across 5 dimensions...</p>
+            </div>
+            <div id="aiResultContent" style="display: none; font-size: 0.95rem; line-height: 1.65; color: var(--text-primary);"></div>
+        </div>
+
+        <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem; border-top: 1px solid var(--border-color);">
+            <span id="aiSourceBadge" class="badge" style="background: rgba(99, 102, 241, 0.2); color: #a5b4fc;">Engine: Standby</span>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="closeAIModal()">Done</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Animate score progress bars & dynamic colors
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.mini-bar-fill[data-score]').forEach(function(el) {
+        const score = el.getAttribute('data-score') || '0';
+        el.style.width = score + '%';
+    });
+    document.querySelectorAll('.mod-seg[data-width]').forEach(function(el) {
+        const width = el.getAttribute('data-width') || '0';
+        el.style.width = width + '%';
+    });
+    document.querySelectorAll('.student-avatar[data-avatar-color]').forEach(function(el) {
+        const color = el.getAttribute('data-avatar-color') || '#6366f1';
+        el.style.backgroundColor = color;
+    });
+});
+
+// Modal functions
+function openKeyModal() {
+    document.getElementById('llmKeyModal').style.display = 'flex';
+}
+
+function closeKeyModal() {
+    document.getElementById('llmKeyModal').style.display = 'none';
+}
+
+function openAIModal() {
+    document.getElementById('aiAnalysisModal').style.display = 'flex';
+}
+
+function closeAIModal() {
+    document.getElementById('aiAnalysisModal').style.display = 'none';
+}
+
+function fetchCohortAIAnalysis() {
+    openAIModal();
+    const loading = document.getElementById('aiLoadingSpinner');
+    const result = document.getElementById('aiResultContent');
+    const badge = document.getElementById('aiSourceBadge');
+
+    loading.style.display = 'block';
+    result.style.display = 'none';
+
+    fetch("{% url 'dashboard:cohort_ai_analysis' %}")
+        .then(response => response.json())
+        .then(data => {
+            loading.style.display = 'none';
+            result.style.display = 'block';
+
+            if (data.success) {
+                badge.innerText = 'Engine: ' + data.source;
+                // Format basic markdown headers for clean render
+                let formatted = data.analysis
+                    .replace(/^### (.*$)/gim, '<h4 style="font-family: var(--font-heading); color: #a5b4fc; margin-top: 1.2rem; margin-bottom: 0.4rem;">$1</h4>')
+                    .replace(/^## (.*$)/gim, '<h3 style="font-family: var(--font-heading); color: #c7d2fe; margin-top: 1.4rem; margin-bottom: 0.5rem;">$1</h3>')
+                    .replace(/\*\*(.*?)\*\*/gim, '<strong style="color: #ffffff;">$1</strong>')
+                    .replace(/^- (.*$)/gim, '<div style="margin-left: 1rem; margin-bottom: 0.35rem;">• $1</div>')
+                    .replace(/\n/gim, '<br>');
+                result.innerHTML = formatted;
+            } else {
+                result.innerHTML = '<p style="color: var(--accent-rose);">' + data.message + '</p>';
+            }
+        })
+        .catch(err => {
+            loading.style.display = 'none';
+            result.style.display = 'block';
+            result.innerHTML = '<p style="color: var(--accent-rose);">Error connecting to AI service. Please verify server connectivity.</p>';
+        });
+}
+</script>
+{% endblock %}

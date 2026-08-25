@@ -1,0 +1,127 @@
+{% extends 'base.html' %}
+
+{% block title %}Student Registration{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="card">
+        <!-- Role Switching Tabs -->
+        <div class="role-tabs">
+            <a href="{% url 'accounts:signup_student' %}" class="role-tab active">🎒 Student Sign Up</a>
+            <a href="{% url 'accounts:signup_teacher' %}" class="role-tab">👨‍🏫 Teacher Sign Up</a>
+        </div>
+
+        <div class="auth-header">
+            <h1>Create Student Account</h1>
+            <p>Select your academic tier to get a personalized mindset questionnaire.</p>
+        </div>
+
+        <!-- Google OAuth for Students -->
+        <a href="{% url 'accounts:google_init' %}?role=STUDENT&tier=SCHOOL" class="btn btn-secondary btn-block btn-lg" style="display: flex; align-items: center; justify-content: center; gap: 0.75rem; background: rgba(255, 255, 255, 0.06); border-color: rgba(255, 255, 255, 0.18); margin-bottom: 1.5rem;">
+            <svg width="20" height="20" viewBox="0 0 48 48">
+                <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+                <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+                <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+                <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+            </svg>
+            <span>Sign Up with Google as Student</span>
+        </a>
+
+        <div style="display: flex; align-items: center; margin: 1.2rem 0; gap: 1rem;">
+            <div style="flex: 1; height: 1px; background: var(--border-color);"></div>
+            <span style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Or register manually</span>
+            <div style="flex: 1; height: 1px; background: var(--border-color);"></div>
+        </div>
+
+        <form method="POST" action="{% url 'accounts:signup_student' %}">
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+                <div class="alert alert-error">
+                    {% for error in form.non_field_errors %}
+                        <span>{{ error }}</span>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div class="form-group">
+                    <label class="form-label" for="{{ form.first_name.id_for_label }}">First Name *</label>
+                    {{ form.first_name }}
+                    {% if form.first_name.errors %}
+                        <div class="form-error">{{ form.first_name.errors.0 }}</div>
+                    {% endif %}
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="{{ form.last_name.id_for_label }}">Last Name</label>
+                    {{ form.last_name }}
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="{{ form.username.id_for_label }}">Username *</label>
+                {{ form.username }}
+                {% if form.username.errors %}
+                    <div class="form-error">{{ form.username.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="{{ form.email.id_for_label }}">Email Address *</label>
+                {{ form.email }}
+                {% if form.email.errors %}
+                    <div class="form-error">{{ form.email.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="{{ form.academic_tier.id_for_label }}">🎓 Academic Qualification Tier *</label>
+                {{ form.academic_tier }}
+                <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.3rem;">
+                    This filters your assessment questions to match your education level.
+                </div>
+                {% if form.academic_tier.errors %}
+                    <div class="form-error">{{ form.academic_tier.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div class="form-group">
+                    <label class="form-label" for="{{ form.grade_or_year.id_for_label }}">Class / Year</label>
+                    {{ form.grade_or_year }}
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="{{ form.institution.id_for_label }}">School / College</label>
+                    {{ form.institution }}
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div class="form-group">
+                    <label class="form-label" for="{{ form.password.id_for_label }}">Password *</label>
+                    {{ form.password }}
+                    {% if form.password.errors %}
+                        <div class="form-error">{{ form.password.errors.0 }}</div>
+                    {% endif %}
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="{{ form.confirm_password.id_for_label }}">Confirm *</label>
+                    {{ form.confirm_password }}
+                    {% if form.confirm_password.errors %}
+                        <div class="form-error">{{ form.confirm_password.errors.0 }}</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-block btn-lg" style="margin-top: 1.5rem;">
+                Create Student Account & Start →
+            </button>
+        </form>
+
+        <div style="text-align: center; margin-top: 1.5rem; font-size: 0.9rem; color: var(--text-muted);">
+            Already have an account? 
+            <a href="{% url 'accounts:login' %}" style="color: #a5b4fc; text-decoration: none; font-weight: 600;">Sign In</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

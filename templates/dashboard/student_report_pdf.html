@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Academic Diagnostic Report — {{ student.get_full_name|default:student.username }} | MindConnect</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --text-dark: #0f172a;
+            --text-muted: #475569;
+            --border-light: #cbd5e1;
+            --bg-light: #f8fafc;
+            --accent-rose: #e11d48;
+            --accent-amber: #d97706;
+            --accent-emerald: #059669;
+            --accent-cyan: #0891b2;
+            --accent-purple: #7c3aed;
+        }
+
+        @page {
+            size: A4 portrait;
+            margin: 1.2cm;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            color: var(--text-dark);
+            background: #ffffff;
+            line-height: 1.5;
+            font-size: 11pt;
+            padding: 1.5rem;
+        }
+
+        /* Printable Report Header */
+        .report-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            border-bottom: 2px solid var(--primary);
+            padding-bottom: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .brand-title {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-size: 1.6rem;
+            font-weight: 800;
+            color: var(--primary);
+        }
+
+        .brand-subtitle {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-top: 0.15rem;
+        }
+
+        .report-doc-meta {
+            text-align: right;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        /* Student Info Box */
+        .student-info-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.75rem;
+            background: var(--bg-light);
+            border: 1px solid var(--border-light);
+            border-radius: 6px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .info-cell strong {
+            display: block;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+        }
+
+        .info-cell span {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--text-dark);
+        }
+
+        .text-rose { color: var(--accent-rose) !important; }
+        .text-amber { color: var(--accent-amber) !important; }
+        .text-emerald { color: var(--accent-emerald) !important; }
+
+        /* Persona Banner */
+        .persona-banner {
+            border: 1px solid #e0e7ff;
+            background: #eef2ff;
+            border-left: 5px solid var(--primary);
+            border-radius: 6px;
+            padding: 1rem 1.25rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .persona-title {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-size: 1.3rem;
+            font-weight: 800;
+            color: var(--primary);
+            margin-bottom: 0.25rem;
+        }
+
+        .persona-tagline {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #3730a3;
+            margin-bottom: 0.5rem;
+        }
+
+        .persona-summary {
+            font-size: 0.88rem;
+            color: #334155;
+            line-height: 1.55;
+        }
+
+        /* Section Headings */
+        .section-heading {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-size: 1.05rem;
+            font-weight: 700;
+            border-bottom: 1px solid var(--border-light);
+            padding-bottom: 0.35rem;
+            margin-top: 1.5rem;
+            margin-bottom: 0.85rem;
+            color: var(--text-dark);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Whole Student Profile Table */
+        .profile-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1.5rem;
+            font-size: 0.88rem;
+        }
+
+        .profile-table th, .profile-table td {
+            border: 1px solid var(--border-light);
+            padding: 0.6rem 0.85rem;
+            text-align: left;
+        }
+
+        .profile-table th {
+            background: var(--bg-light);
+            color: var(--text-muted);
+            font-weight: 600;
+            width: 25%;
+        }
+
+        /* Psychometric Score Bars */
+        .scores-bars-container {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .score-box {
+            border: 1px solid var(--border-light);
+            border-radius: 6px;
+            padding: 0.75rem;
+            text-align: center;
+            background: #ffffff;
+        }
+
+        .score-box-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            display: block;
+            margin-bottom: 0.25rem;
+        }
+
+        .score-box-num {
+            font-size: 1.3rem;
+            font-weight: 800;
+            color: var(--text-dark);
+            display: block;
+            margin-bottom: 0.4rem;
+        }
+
+        .mini-meter-track {
+            height: 6px;
+            background: #e2e8f0;
+            border-radius: 99px;
+            overflow: hidden;
+        }
+
+        .mini-meter-fill {
+            height: 100%;
+            border-radius: 99px;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .fill-cyan { background: var(--accent-cyan); }
+        .fill-emerald { background: var(--accent-emerald); }
+        .fill-purple { background: var(--accent-purple); }
+        .fill-primary { background: var(--primary); }
+        .fill-rose { background: var(--accent-rose); }
+
+        /* 3 Pillars */
+        .pillars-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .pillar-card {
+            border: 1px solid var(--border-light);
+            border-radius: 6px;
+            padding: 0.85rem;
+            background: var(--bg-light);
+        }
+
+        .pillar-card h4 {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-size: 0.88rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 0.4rem;
+        }
+
+        .pillar-card p {
+            font-size: 0.82rem;
+            color: #334155;
+            line-height: 1.45;
+        }
+
+        .pillar-alert {
+            border-color: #fecdd3 !important;
+            background: #fff1f2 !important;
+        }
+
+        .pillar-alert h4 {
+            color: var(--accent-rose) !important;
+        }
+
+        /* Student Quote */
+        .student-quote-box {
+            background: #fdf2f8;
+            border: 1px solid #fbcfe8;
+            border-left: 4px solid var(--accent-rose);
+            padding: 0.85rem 1rem;
+            border-radius: 4px;
+            margin-bottom: 1.5rem;
+            font-style: italic;
+            font-size: 0.88rem;
+            color: #831843;
+        }
+
+        /* Conference Sign-off Footer */
+        .conference-signoff {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 2rem;
+            margin-top: 2.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px dashed var(--border-light);
+        }
+
+        .signature-line {
+            border-bottom: 1px solid var(--border-light);
+            margin-top: 2rem;
+            margin-bottom: 0.35rem;
+        }
+
+        .signature-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        /* Floating Action Print Button */
+        .print-floating-bar {
+            position: fixed;
+            bottom: 1.5rem;
+            right: 1.5rem;
+            display: flex;
+            gap: 0.8rem;
+            background: #0f172a;
+            padding: 0.75rem 1.25rem;
+            border-radius: 99px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+            z-index: 100;
+        }
+
+        .print-btn {
+            background: var(--primary);
+            color: #ffffff;
+            border: none;
+            padding: 0.5rem 1.25rem;
+            border-radius: 99px;
+            font-size: 0.88rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        @media print {
+            .print-floating-bar {
+                display: none !important;
+            }
+            body {
+                padding: 0 !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Floating Print / Save PDF Bar (Hidden in Print) -->
+    <div class="print-floating-bar">
+        <a href="javascript:window.print()" class="print-btn">
+            🖨️ Print / Save as PDF
+        </a>
+        <a href="javascript:window.history.back()" class="print-btn" style="background: rgba(255,255,255,0.15);">
+            ← Back
+        </a>
+    </div>
+
+    <!-- Document Header -->
+    <div class="report-header">
+        <div>
+            <h1 class="brand-title">MindConnect Assessment Dossier</h1>
+            <p class="brand-subtitle">Parent-Teacher Conference & Pedagogical Adaptation Report</p>
+        </div>
+        <div class="report-doc-meta">
+            <p><strong>Report ID:</strong> MC-SUB-{{ submission.id }}</p>
+            <p><strong>Date:</strong> {{ submission.submitted_at|date:"F d, Y" }}</p>
+            <p><strong>Status:</strong> Official Confidential Record</p>
+        </div>
+    </div>
+
+    <!-- Student Information Overview -->
+    <div class="student-info-grid">
+        <div class="info-cell">
+            <strong>Student Full Name</strong>
+            <span>{{ student.get_full_name|default:student.username }}</span>
+        </div>
+        <div class="info-cell">
+            <strong>Academic Level / Grade</strong>
+            <span>{{ submission.get_tier_display }} • {{ student.grade_or_year|default:"General Level" }}</span>
+        </div>
+        <div class="info-cell">
+            <strong>Institution</strong>
+            <span>{{ student.institution|default:"MindConnect Academic Academy" }}</span>
+        </div>
+        <div class="info-cell">
+            <strong>Student Email</strong>
+            <span>{{ student.email }}</span>
+        </div>
+        <div class="info-cell">
+            <strong>Dominant Modality</strong>
+            <span>{{ submission.dominant_modality }} Dominant</span>
+        </div>
+        <div class="info-cell">
+            <strong>Wellbeing Watchlist</strong>
+            <span class="{% if submission.wellbeing_flag == 'Red' %}text-rose{% elif submission.wellbeing_flag == 'Amber' %}text-amber{% else %}text-emerald{% endif %}">
+                {{ submission.wellbeing_flag|default:"Green" }} Status
+            </span>
+        </div>
+    </div>
+
+    <!-- Dominant Persona Banner -->
+    <div class="persona-banner">
+        <h2 class="persona-title">{{ submission.persona_title }}</h2>
+        <p class="persona-tagline">{{ submission.persona_tagline }}</p>
+        <p class="persona-summary">{{ submission.persona_summary }}</p>
+    </div>
+
+    <!-- Whole-Student Profile Summary Table -->
+    <h3 class="section-heading">Whole-Student Profile Summary</h3>
+    <table class="profile-table">
+        <tr>
+            <th>Personality Archetype</th>
+            <td><strong>{{ submission.personality_tag|default:"Achiever" }}</strong> — Values clear milestones and autonomous research.</td>
+        </tr>
+        <tr>
+            <th>Career & Interest Domain</th>
+            <td><strong>{{ submission.interests_tag|default:"STEM / Analytical" }}</strong> — Optimal domain for applied course project structuring.</td>
+        </tr>
+        <tr>
+            <th>Soft Skills & Dynamics</th>
+            <td><strong>{{ submission.soft_skills_summary|default:"Collaborative, Reliable, Diplomatic" }}</strong></td>
+        </tr>
+        <tr>
+            <th>Cognitive Accuracy</th>
+            <td><strong>{{ submission.cognitive_score }}% Accuracy</strong> on screening reasoning & knowledge probes.</td>
+        </tr>
+    </table>
+
+    <!-- 5 Psychometric Dimension Scores -->
+    <h3 class="section-heading">Psychometric Dimension Matrix (0–100%)</h3>
+    <div class="scores-bars-container">
+        <div class="score-box">
+            <span class="score-box-label">Visual (V)</span>
+            <span class="score-box-num">{{ submission.visual_score }}%</span>
+            <div class="mini-meter-track">
+                <div class="mini-meter-fill fill-cyan" data-pct="{{ submission.visual_score }}"></div>
+            </div>
+        </div>
+        <div class="score-box">
+            <span class="score-box-label">Kinesthetic (K)</span>
+            <span class="score-box-num">{{ submission.kinesthetic_score }}%</span>
+            <div class="mini-meter-track">
+                <div class="mini-meter-fill fill-emerald" data-pct="{{ submission.kinesthetic_score }}"></div>
+            </div>
+        </div>
+        <div class="score-box">
+            <span class="score-box-label">Auditory (A)</span>
+            <span class="score-box-num">{{ submission.auditory_score }}%</span>
+            <div class="mini-meter-track">
+                <div class="mini-meter-fill fill-purple" data-pct="{{ submission.auditory_score }}"></div>
+            </div>
+        </div>
+        <div class="score-box">
+            <span class="score-box-label">Growth Mindset</span>
+            <span class="score-box-num">{{ submission.growth_score }}%</span>
+            <div class="mini-meter-track">
+                <div class="mini-meter-fill fill-primary" data-pct="{{ submission.growth_score }}"></div>
+            </div>
+        </div>
+        <div class="score-box">
+            <span class="score-box-label">Stress Sensitivity</span>
+            <span class="score-box-num {% if submission.is_stress_alert %}text-rose{% endif %}">
+                {{ submission.stress_score }}%
+            </span>
+            <div class="mini-meter-track">
+                <div class="mini-meter-fill fill-rose" data-pct="{{ submission.stress_score }}"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3-Pillar Educator Mentorship Blueprint -->
+    <h3 class="section-heading">3-Pillar Educator Mentorship Blueprint</h3>
+    <div class="pillars-grid">
+        <div class="pillar-card">
+            <h4>1. Motivation & Tasks</h4>
+            <p>{{ submission.teacher_motivation }}</p>
+        </div>
+        <div class="pillar-card">
+            <h4>2. Feedback & Critique</h4>
+            <p>{{ submission.teacher_communication }}</p>
+        </div>
+        <div class="pillar-card {% if submission.is_stress_alert %}pillar-alert{% endif %}">
+            <h4>3. Caution & Triggers</h4>
+            <p>{{ submission.teacher_caution }}</p>
+        </div>
+    </div>
+
+    <!-- Student's Personal Note to Educator -->
+    {% if submission.open_message_to_teacher %}
+        <h3 class="section-heading">Student's Confidential Message to Educator</h3>
+        <div class="student-quote-box">
+            “{{ submission.open_message_to_teacher }}”
+        </div>
+    {% endif %}
+
+    <!-- Parent-Teacher Conference Sign-off -->
+    <div class="conference-signoff">
+        <div>
+            <div class="signature-line"></div>
+            <p class="signature-label">Primary Educator / Academic Advisor Signature</p>
+        </div>
+        <div>
+            <div class="signature-line"></div>
+            <p class="signature-label">Parent / Student Guardian Signature</p>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.mini-meter-fill[data-pct]').forEach(function(el) {
+                var pct = el.getAttribute('data-pct') || '0';
+                el.style.width = pct + '%';
+            });
+        });
+    </script>
+</body>
+</html>

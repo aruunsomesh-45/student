@@ -1,0 +1,489 @@
+{% extends 'base.html' %}
+
+{% block title %}1-on-1 Playbook: {{ student.get_full_name|default:student.username }} | MindConnect{% endblock %}
+
+{% block content %}
+<div class="results-container playbook-container">
+    <!-- Back to Roster Navigation -->
+    <div class="playbook-top-nav">
+        <a href="{% url 'dashboard:teacher_overview' %}" class="back-link">
+            <span>←</span>
+            <span>Back to Classroom Roster</span>
+        </a>
+
+        <!-- Diagnostic History Switcher -->
+        {% if historical_submissions.count > 1 %}
+            <div class="playbook-history-pills">
+                <span class="history-label">Attempts:</span>
+                {% for sub in historical_submissions %}
+                    <a href="{% url 'dashboard:submission_playbook' submission_id=sub.id %}" 
+                       class="history-pill {% if sub.id == submission.id %}active{% endif %}">
+                        #{{ forloop.revcounter }} • {{ sub.submitted_at|date:"M d" }}
+                    </a>
+                {% endfor %}
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Student Hero Header Card -->
+    <div class="persona-hero-card {% if submission.is_stress_alert %}hero-alert-border{% endif %}">
+        <div class="hero-persona-layout">
+            <div class="student-avatar-lg" data-avatar-color="{{ student.avatar_color|default:'#6366f1' }}">
+                {{ student.first_name|default:student.username|make_list|first|upper }}
+            </div>
+
+            <div class="persona-details">
+                <div class="hero-badge-row">
+                    <span class="badge-pill">
+                        <span class="badge-dot"></span>
+                        <span>{{ tier_display }} • {{ student.grade_or_year|default:"General Level" }}</span>
+                    </span>
+                    {% if submission.is_stress_alert %}
+                        <span class="stress-warning-pill">⚠️ High Stress / Wellbeing Watchlist</span>
+                    {% else %}
+                        <span class="badge" style="background: rgba(16, 185, 129, 0.15); color: #6ee7b7; border-color: rgba(16, 185, 129, 0.3);">
+                            ✓ Stable Resilience
+                        </span>
+                    {% endif %}
+                </div>
+
+                <h1 class="persona-hero-title">{{ student.get_full_name|default:student.username }}</h1>
+                <p class="persona-tagline-text" style="color: var(--accent-cyan);">
+                    <strong>{{ submission.persona_title }}</strong> — {{ submission.persona_tagline }}
+                </p>
+                <p class="student-institution-text" style="font-size: 0.88rem; color: var(--text-muted); margin-top: 0.3rem;">
+                    🏫 {{ student.institution|default:"MindConnect Academy" }} • ✉️ {{ student.email }} • Evaluated on {{ submission.submitted_at|date:"F d, Y" }}
+                </p>
+            </div>
+
+            <div class="playbook-hero-actions">
+                <button type="button" class="btn btn-primary btn-sm" onclick="fetchStudentAIPlan()">
+                    ✨ Generate AI Lesson Plan
+                </button>
+                <a href="{% url 'dashboard:student_report_pdf' submission_id=submission.id %}" target="_blank" class="btn btn-secondary btn-sm">
+                    📄 Export PDF Report
+                </a>
+                <button type="button" class="btn btn-outline btn-sm" onclick="window.print()">
+                    🖨️ Quick Print
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- =========================================================================
+         Whole-Student Profile Overview (4 Spatial Cards)
+         ========================================================================= -->
+    <div class="profile-cards-section">
+        <h2 class="section-title">Whole-Student Diagnostic Profile</h2>
+        <div class="profile-grid-4">
+            <!-- Card 1: Personality Archetype -->
+            <div class="profile-metric-card">
+                <div class="profile-card-icon icon-blue">👤</div>
+                <div class="profile-card-content">
+                    <span class="profile-card-label">Personality Archetype</span>
+                    <strong class="profile-card-value">{{ submission.personality_tag|default:"Achiever" }}</strong>
+                    <span class="profile-card-desc">
+                        {% if submission.personality_tag == 'Achiever' %}Goal-driven, values milestone progress tracking.
+                        {% elif submission.personality_tag == 'Explorer' %}Curiosity-driven, seeks novel lateral approaches.
+                        {% elif submission.personality_tag == 'Collaborator' %}Team-driven, excels in collaborative environments.
+                        {% else %}Logic-driven, analyzes underlying mechanics.{% endif %}
+                    </span>
+                </div>
+            </div>
+
+            <!-- Card 2: Interests & Career Inclination -->
+            <div class="profile-metric-card">
+                <div class="profile-card-icon icon-purple">🎯</div>
+                <div class="profile-card-content">
+                    <span class="profile-card-label">Interests & Career</span>
+                    <strong class="profile-card-value">{{ submission.interests_tag|default:"STEM / Analytical" }}</strong>
+                    <span class="profile-card-desc">
+                        Optimal domain alignment for applied project assignments.
+                    </span>
+                </div>
+            </div>
+
+            <!-- Card 3: Wellbeing & Academic Confidence -->
+            <div class="profile-metric-card {% if submission.wellbeing_flag == 'Red' %}card-alert{% endif %}">
+                <div class="profile-card-icon {% if submission.wellbeing_flag == 'Red' %}icon-rose{% elif submission.wellbeing_flag == 'Amber' %}icon-amber{% else %}icon-emerald{% endif %}">
+                    {% if submission.wellbeing_flag == 'Red' %}⚡{% elif submission.wellbeing_flag == 'Amber' %}⏳{% else %}🌱{% endif %}
+                </div>
+                <div class="profile-card-content">
+                    <span class="profile-card-label">Wellbeing & Motivation</span>
+                    <strong class="profile-card-value {% if submission.wellbeing_flag == 'Red' %}text-rose{% elif submission.wellbeing_flag == 'Amber' %}text-amber{% else %}text-emerald{% endif %}">
+                        {{ submission.wellbeing_flag|default:"Green" }} Status
+                    </strong>
+                    <span class="profile-card-desc">
+                        {% if submission.wellbeing_flag == 'Red' %}⚠️ Experiencing high anxiety or workload friction.
+                        {% elif submission.wellbeing_flag == 'Amber' %}Requires pacing support during crunch weeks.
+                        {% else %}High confidence and positive study engagement.{% endif %}
+                    </span>
+                </div>
+            </div>
+
+            <!-- Card 4: Soft Skills & Team Dynamics -->
+            <div class="profile-metric-card">
+                <div class="profile-card-icon icon-cyan">🤝</div>
+                <div class="profile-card-content">
+                    <span class="profile-card-label">Soft Skills & Dynamics</span>
+                    <strong class="profile-card-value" style="font-size: 0.95rem;">{{ submission.soft_skills_summary|default:"Collaborative, Reliable" }}</strong>
+                    <span class="profile-card-desc">
+                        Behavioral markers observed across group tasks and deadlines.
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Student's Open Message to Teacher Card -->
+    {% if submission.open_message_to_teacher %}
+        <div class="teacher-open-message-card">
+            <div class="message-card-header">
+                <span style="font-size: 1.6rem;">💌</span>
+                <div>
+                    <h3 style="font-family: var(--font-heading); font-size: 1.1rem; color: #ffffff;">
+                        Personal Note from {{ student.first_name|default:student.username }}
+                    </h3>
+                    <span style="font-size: 0.8rem; color: var(--text-muted);">Confidential • Shared directly with educator</span>
+                </div>
+            </div>
+            <div class="student-message-quote">
+                “{{ submission.open_message_to_teacher }}”
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- =========================================================================
+         5-Dimension Psychometric Breakdown
+         ========================================================================= -->
+    <div class="scores-section">
+        <h2 class="section-title">5-Dimension Psychometric Breakdown</h2>
+        <div class="scores-grid">
+            <!-- Visual -->
+            <div class="score-card">
+                <div class="score-header">
+                    <div class="score-title-group">
+                        <span class="score-icon">🎨</span>
+                        <h3 class="score-title">Visual</h3>
+                    </div>
+                    <span class="score-percentage">{{ submission.visual_score }}%</span>
+                </div>
+                <div class="score-meter-track">
+                    <div class="score-meter-fill visual-fill" data-score="{{ submission.visual_score }}"></div>
+                </div>
+                <p class="score-desc">Receptive to structural diagrams, mind maps, and whiteboard schemas.</p>
+            </div>
+
+            <!-- Kinesthetic -->
+            <div class="score-card">
+                <div class="score-header">
+                    <div class="score-title-group">
+                        <span class="score-icon">🛠️</span>
+                        <h3 class="score-title">Kinesthetic</h3>
+                    </div>
+                    <span class="score-percentage">{{ submission.kinesthetic_score }}%</span>
+                </div>
+                <div class="score-meter-track">
+                    <div class="score-meter-fill kinesthetic-fill" data-score="{{ submission.kinesthetic_score }}"></div>
+                </div>
+                <p class="score-desc">Internalizes concepts through sandbox labs, trial-and-error, and code.</p>
+            </div>
+
+            <!-- Auditory -->
+            <div class="score-card">
+                <div class="score-header">
+                    <div class="score-title-group">
+                        <span class="score-icon">🗣️</span>
+                        <h3 class="score-title">Auditory</h3>
+                    </div>
+                    <span class="score-percentage">{{ submission.auditory_score }}%</span>
+                </div>
+                <div class="score-meter-track">
+                    <div class="score-meter-fill auditory-fill" data-score="{{ submission.auditory_score }}"></div>
+                </div>
+                <p class="score-desc">Learns through verbal dialogue, Socratic debate, and verbal recitations.</p>
+            </div>
+
+            <!-- Growth Mindset -->
+            <div class="score-card">
+                <div class="score-header">
+                    <div class="score-title-group">
+                        <span class="score-icon">🌱</span>
+                        <h3 class="score-title">Growth Mindset</h3>
+                    </div>
+                    <span class="score-percentage">{{ submission.growth_score }}%</span>
+                </div>
+                <div class="score-meter-track">
+                    <div class="score-meter-fill growth-fill" data-score="{{ submission.growth_score }}"></div>
+                </div>
+                <p class="score-desc">Perseverance through difficult academic blockers and critique stamina.</p>
+            </div>
+
+            <!-- Stress Response -->
+            <div class="score-card {% if submission.is_stress_alert %}card-alert{% endif %}">
+                <div class="score-header">
+                    <div class="score-title-group">
+                        <span class="score-icon">⚡</span>
+                        <h3 class="score-title">Stress Vulnerability</h3>
+                    </div>
+                    <span class="score-percentage" {% if submission.is_stress_alert %}style="color: var(--accent-rose);"{% endif %}>
+                        {{ submission.stress_score }}%
+                    </span>
+                </div>
+                <div class="score-meter-track">
+                    <div class="score-meter-fill stress-fill" data-score="{{ submission.stress_score }}"></div>
+                </div>
+                <p class="score-desc">Sensitivity to sudden evaluations, exam stacking, and deadlines.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- =========================================================================
+         3-Pillar Educator Guidance
+         ========================================================================= -->
+    <div class="toolkit-section">
+        <h2 class="section-title">3-Pillar Educator Mentorship Blueprint</h2>
+        <div class="strategies-grid">
+            <!-- Pillar 1: Motivation & Assignment Structuring -->
+            <div class="strategy-card">
+                <div class="strategy-badge" style="background: rgba(99, 102, 241, 0.15); color: #c7d2fe;">
+                    Pillar 1 • Motivation & Tasks
+                </div>
+                <h3 class="strategy-title">How to Motivate & Assign Work</h3>
+                <p class="strategy-desc">{{ submission.teacher_motivation }}</p>
+            </div>
+
+            <!-- Pillar 2: Communication & Feedback Channels -->
+            <div class="strategy-card">
+                <div class="strategy-badge" style="background: rgba(6, 182, 212, 0.15); color: #a5f3fc;">
+                    Pillar 2 • Feedback & Dialogue
+                </div>
+                <h3 class="strategy-title">Communication & Critique Style</h3>
+                <p class="strategy-desc">{{ submission.teacher_communication }}</p>
+            </div>
+
+            <!-- Pillar 3: Caution & Stress De-escalation -->
+            <div class="strategy-card {% if submission.is_stress_alert %}card-alert{% endif %}">
+                <div class="strategy-badge" style="background: rgba(244, 63, 94, 0.15); color: #fecdd3;">
+                    Pillar 3 • Caution & Watchlist
+                </div>
+                <h3 class="strategy-title">Stress Triggers & What to Watch For</h3>
+                <p class="strategy-desc">{{ submission.teacher_caution }}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- =========================================================================
+         Private Teacher Observation Notes Log
+         ========================================================================= -->
+    <div class="teacher-notes-section">
+        <div class="notes-section-header">
+            <div>
+                <h2 class="section-title" style="margin-bottom: 0.2rem;">🔒 Private Educator Observation Notes</h2>
+                <p style="font-size: 0.9rem; color: var(--text-secondary);">
+                    Confidential logs visible only to educators. Use for 1-on-1 conference records, intervention tracking, and AI plans.
+                </p>
+            </div>
+        </div>
+
+        <!-- Add Note Form -->
+        <form method="POST" action="{% url 'dashboard:submission_playbook' submission_id=submission.id %}" class="add-note-card">
+            {% csrf_token %}
+            <div style="display: flex; gap: 1rem; align-items: center; margin-bottom: 1rem; flex-wrap: wrap;">
+                <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted);">Category:</label>
+                {{ note_form.category }}
+            </div>
+            <div style="margin-bottom: 1rem;">
+                {{ note_form.content }}
+            </div>
+            <div style="display: flex; justify-content: flex-end;">
+                <button type="submit" class="btn btn-primary btn-sm">
+                    💾 Save Private Note
+                </button>
+            </div>
+        </form>
+
+        <!-- Chronological Notes Timeline -->
+        <div class="notes-timeline">
+            {% if teacher_notes.count == 0 %}
+                <div class="empty-notes-card">
+                    <p style="color: var(--text-muted); font-size: 0.9rem;">
+                        No private observation notes recorded yet for this student. Use the form above or generate an AI plan to log observations.
+                    </p>
+                </div>
+            {% else %}
+                {% for note in teacher_notes %}
+                    <div class="note-log-card">
+                        <div class="note-log-header">
+                            <div class="note-log-meta">
+                                <span class="note-category-pill category-{{ note.category|lower }}">{{ note.get_category_display }}</span>
+                                <span class="note-author">By {{ note.teacher.get_full_name|default:note.teacher.username }}</span>
+                                <span class="note-timestamp">• {{ note.created_at|date:"M d, Y - h:i A" }}</span>
+                            </div>
+                            <form method="POST" action="{% url 'dashboard:delete_teacher_note' note_id=note.id %}" onsubmit="return confirm('Delete this note?')">
+                                {% csrf_token %}
+                                <button type="submit" class="note-delete-btn" title="Delete Note">✕</button>
+                            </form>
+                        </div>
+                        <div class="note-log-content">
+                            {{ note.content|linebreaks }}
+                        </div>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- ==========================================================================
+     MODAL: AI 1-on-1 Lesson Plan Viewer
+     ========================================================================== -->
+<div id="studentAIModal" class="modal-overlay" style="display: none;">
+    <div class="modal-card modal-card-lg">
+        <div class="modal-header">
+            <div style="display: flex; align-items: center; gap: 0.6rem;">
+                <span style="font-size: 1.6rem;">✨</span>
+                <h3 class="modal-title">AI Personalized Mentorship & Lesson Plan</h3>
+            </div>
+            <button type="button" class="modal-close-btn" onclick="closeStudentAIModal()">✕</button>
+        </div>
+
+        <div class="modal-body" id="studentAIModalBody">
+            <div id="studentAILoading" style="text-align: center; padding: 3rem 1rem;">
+                <div class="spinner-ring"></div>
+                <p style="margin-top: 1rem; color: var(--text-secondary);">
+                    Synthesizing {{ student.get_full_name|default:student.username }}'s scores, learning modality, and open message...
+                </p>
+            </div>
+            <div id="studentAIResult" style="display: none; font-size: 0.95rem; line-height: 1.65; color: var(--text-primary);"></div>
+        </div>
+
+        <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center; padding: 1.1rem 1.5rem; border-top: 1px solid rgba(255,255,255,0.08); flex-wrap: wrap; gap: 0.8rem;">
+            <span id="studentAISourceBadge" class="badge" style="background: rgba(99, 102, 241, 0.2); color: #a5b4fc; padding: 0.4rem 0.8rem; border-radius: 999px; font-size: 0.8rem;">Engine: Standby</span>
+            <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+                <button type="button" class="btn btn-primary btn-sm" id="saveAIToNoteBtn" onclick="copyAIToNoteForm()">
+                    📝 Copy to Private Notes
+                </button>
+                <button type="button" class="btn btn-outline btn-sm" onclick="printAIPlanContent()">
+                    🖨️ Print / Export AI Plan
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="closeStudentAIModal()">Done</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let lastGeneratedAIPlan = "";
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Animate score meters
+    document.querySelectorAll('.score-meter-fill[data-score]').forEach(function(el) {
+        const score = el.getAttribute('data-score') || '0';
+        el.style.width = score + '%';
+    });
+
+    // Animate student avatar
+    document.querySelectorAll('.student-avatar-lg[data-avatar-color]').forEach(function(el) {
+        const color = el.getAttribute('data-avatar-color') || '#6366f1';
+        el.style.backgroundColor = color;
+    });
+});
+
+function openStudentAIModal() {
+    document.getElementById('studentAIModal').style.display = 'flex';
+}
+
+function closeStudentAIModal() {
+    document.getElementById('studentAIModal').style.display = 'none';
+}
+
+function fetchStudentAIPlan() {
+    openStudentAIModal();
+    const loading = document.getElementById('studentAILoading');
+    const result = document.getElementById('studentAIResult');
+    const badge = document.getElementById('studentAISourceBadge');
+
+    loading.style.display = 'block';
+    result.style.display = 'none';
+
+    fetch("{% url 'dashboard:student_ai_plan' submission_id=submission.id %}")
+        .then(response => response.json())
+        .then(data => {
+            loading.style.display = 'none';
+            result.style.display = 'block';
+
+            if (data.success) {
+                lastGeneratedAIPlan = data.analysis;
+                badge.innerText = 'Engine: ' + data.source;
+
+                let formatted = data.analysis
+                    .replace(/^### (.*$)/gim, '<h4 style="font-family: var(--font-heading); color: #a5b4fc; margin-top: 1.2rem; margin-bottom: 0.4rem;">$1</h4>')
+                    .replace(/^## (.*$)/gim, '<h3 style="font-family: var(--font-heading); color: #c7d2fe; margin-top: 1.4rem; margin-bottom: 0.5rem;">$1</h3>')
+                    .replace(/\*\*(.*?)\*\*/gim, '<strong style="color: #ffffff;">$1</strong>')
+                    .replace(/^- (.*$)/gim, '<div style="margin-left: 1rem; margin-bottom: 0.35rem;">• $1</div>')
+                    .replace(/\n/gim, '<br>');
+                result.innerHTML = formatted;
+            } else {
+                result.innerHTML = '<p style="color: var(--accent-rose);">' + data.message + '</p>';
+            }
+        })
+        .catch(err => {
+            loading.style.display = 'none';
+            result.style.display = 'block';
+            result.innerHTML = '<p style="color: var(--accent-rose);">Error connecting to AI service. Please verify server connectivity.</p>';
+        });
+}
+
+function copyAIToNoteForm() {
+    if (!lastGeneratedAIPlan) return;
+    const contentInput = document.getElementById('noteContentInput');
+    const categorySelect = document.getElementById('noteCategorySelect');
+    
+    if (contentInput) {
+        contentInput.value = lastGeneratedAIPlan;
+        if (categorySelect) categorySelect.value = 'AI_STRATEGY';
+        closeStudentAIModal();
+        contentInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        contentInput.focus();
+    }
+}
+
+function printAIPlanContent() {
+    const contentEl = document.getElementById('studentAIResult');
+    if (!contentEl || !contentEl.innerHTML) {
+        alert('Please generate the AI plan first.');
+        return;
+    }
+    const studentName = "{{ student.get_full_name|default:student.username|escapejs }}";
+    const printWin = window.open('', '_blank', 'width=800,height=900');
+    printWin.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>AI Personalized Pedagogical Plan — ${studentName}</title>
+            <style>
+                body { font-family: system-ui, -apple-system, sans-serif; padding: 2.5rem; color: #1e293b; line-height: 1.65; max-width: 800px; margin: 0 auto; }
+                h1 { color: #4338ca; border-bottom: 2px solid #4338ca; padding-bottom: 0.5rem; font-size: 1.6rem; font-weight: 800; }
+                h3 { color: #3730a3; margin-top: 1.4rem; font-size: 1.2rem; }
+                h4 { color: #4f46e5; margin-top: 1.1rem; font-size: 1.05rem; }
+                .meta { color: #64748b; font-size: 0.9rem; margin-bottom: 1.5rem; padding-bottom: 0.75rem; border-bottom: 1px solid #e2e8f0; }
+                strong { color: #0f172a; }
+                @media print { body { padding: 0; } }
+            </style>
+        </head>
+        <body>
+            <h1>MindConnect • AI Personalized Lesson & Mentorship Plan</h1>
+            <div class="meta">Student: <strong>${studentName}</strong> • Tier: <strong>{{ submission.get_tier_display }}</strong> • Date: ${new Date().toLocaleDateString()}</div>
+            <div>${contentEl.innerHTML}</div>
+        </body>
+        </html>
+    `);
+    printWin.document.close();
+    printWin.focus();
+    setTimeout(() => { printWin.print(); }, 400);
+}
+</script>
+{% endblock %}
